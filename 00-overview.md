@@ -90,38 +90,9 @@ None of this is about skill. It is about doing slow, repetitive work at the wors
 
 ---
 
-## Why not an existing AI agent?
-
-### What an AI agent is
-
-An **AI agent** is a system that uses a Large Language Model (LLM) to reach a goal on its own. A chatbot only answers from what it already knows. An agent can **call tools, read the results and decide what to do next**, step by step, until the goal is reached or a human needs to decide.
-
-| Step | What the agent does |
-|---|---|
-| **Think** | The LLM understands the goal, breaks it into steps, and picks the next tool |
-| **Act** | It calls tools (APIs, queries, commands) to get real data from real systems |
-| **Observe** | It reads the result, checks whether the goal is reached, and loops if it is not |
-
-Around that loop sit **memory** (the conversation and the findings so far), **instructions** (role, rules, guardrails) and a **tool interface** (function calling or MCP). Risky actions wait for human approval.
-
-### Why the existing ones did not fit
-
-DevOps-specific agents exist, HolmesGPT among them, and they are powerful. They are often hard to adopt in an enterprise environment:
-
-| Challenge | Why it blocked adoption |
-|---|---|
-| **Complex setup** | CLI-based, installed and configured on each engineer's own device — so it is only there when you are at that device |
-| **Security policy** | Does not comply with a strict corporate security policy |
-| **Private LLM** | Cannot connect to a private, in-house LLM |
-| **Workflow fit** | Does not fit the observability flow a team already runs |
-
-> **What is needed:** an AI agent that runs **centrally**, is reachable **from anywhere through Slack**, follows **the organisation's security policy**, can use **a private LLM**, and works inside **the existing observability flow**.
-
----
-
 ## The solution
 
-The **DevOps AI Agent Stack** is that agent: an AI teammate that sits in the on-call channel. It investigates every alert the way an experienced SRE would, writes it up as a structured Root Cause Analysis in the alert's own thread, and **never changes anything without a human's approval**. It is an AI-powered assistant inside the flow a team already has, not a replacement for it.
+The **DevOps AI Agent Stack** makes that real: an AI teammate that sits in the on-call channel. It investigates every alert the way an experienced SRE would, writes it up as a structured Root Cause Analysis in the alert's own thread, and **never changes anything without a human's approval**. It is an AI-powered assistant inside the flow a team already has, not a replacement for it.
 
 Because it lives in Slack, it goes wherever Slack goes. **The on-call engineer can work an incident from the Slack mobile app**: no laptop, no VPN, no kubeconfig on the device.
 
@@ -139,17 +110,6 @@ Because it lives in Slack, it goes wherever Slack goes. **The on-call engineer c
 | 04 | **Safe for remediation** | Every change is dry-run, human-approved, audited and verified |
 | 05 | **Enterprise-ready** | Runs in your own infrastructure, follows your security policy, and can use a private LLM |
 | 06 | **Learn from every incident** | Past RCAs and confirmed fixes are reused, so recurring issues are resolved faster |
-
-### Thirty days on the dashboard
-
-![The dashboard overview after 30 days](images/dashboard-overview.png)
-
-*The agent's own dashboard, 4 September – 4 October 2026, as shown at the sharing session:*
-- *157 incidents investigated, 100% resolved;*
-- *26 minutes mean time to resolve;*
-- *remediation verified as recovered in 6 of 7 cases (86%).*
-
-*Most of these incidents were faults injected on purpose into the sample apps and the benchmark, so read them as a test bed, not as production figures.*
 
 ### Before and after
 

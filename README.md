@@ -25,7 +25,7 @@ Each page's top line names its audience.
 
 ## Diagrams
 
-Five diagrams, made with [archify](https://github.com/tt-a1i/archify) (v3.2.0), live under `diagrams/<name>/`. One screenshot of the dashboard lives under `images/`.
+Five diagrams, made with [archify](https://github.com/tt-a1i/archify) (v3.2.0), live under `diagrams/<name>/`.
 
 | Diagram | Used on | Files |
 |---|---|---|
@@ -35,7 +35,7 @@ Five diagrams, made with [archify](https://github.com/tt-a1i/archify) (v3.2.0), 
 | How an investigation works | How an Investigation Works | `investigation.png` · `.svg` · `.html` |
 | Guarded remediation | Remediation and Safety Guardrails | `remediation.png` · `.svg` · `.html` |
 
-**Getting them into Confluence.** The pages reference the PNGs (and `images/dashboard-overview.png`) with relative paths, which Confluence does not follow. On each page:
+**Getting them into Confluence.** The pages reference the PNGs with relative paths, which Confluence does not follow. On each page:
 1. Upload the PNG as an attachment, or drag it into the editor.
 2. Put it where the `![…](diagrams/…png)` line was.
 
