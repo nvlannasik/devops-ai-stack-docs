@@ -5,48 +5,90 @@
 
 **Status:** running in the `dev` cluster (namespace `devops-tools`) · **Audience:** everyone — on-call, engineers, leads.
 
+---
+
+## Part 1 — The night every on-call engineer knows
+
+*A composite of the nights before the agent existed. The names are made up; the shape will be familiar.*
+
+**01:44.** Dimas's phone buzzes on the nightstand. `UnexpectedErrorLog`, three alerts at once, on `checkout-gateway` and `storefront`. That is checkout, the path customers are paying through right now.
+
+**01:47.** Laptop open, VPN connecting. Three alerts mean three notifications. Is it three problems or one? He starts with the dashboard, then remembers that this service's error panel lives on a different one.
+
+**01:55.** `kubectl get pods` in one namespace, then the other. Some pods are restarting. `kubectl describe`, scroll, `kubectl logs`, scroll again. The error says something about an upstream, but which one?
+
+**02:05.** *What changed?* He scrolls the deploy channel, then `git log` in the GitOps repo, then the HelmRelease history. Something was rolled out yesterday afternoon. Maybe that is it, maybe it is not.
+
+**02:12.** He asks in the team channel: *"has anyone seen this before?"* The one person who fixed it last time is asleep, and what they learned lives in their head, not anywhere he can search.
+
+**02:20.** Under pressure, he restarts the deployment. It changes nothing: the kubelet had already restarted those pods again and again. Now there is also an unreviewed change at 2 a.m. that nobody will remember making.
+
+**02:40.** He finally finds it: one service is answering in a format the other no longer understands. He fixes it, watches the graphs settle, and goes back to bed at 03:10.
+
+**The next morning,** nothing is written down. Three months later the same thing happens, to someone else, and they start again from zero.
+
+### What actually went wrong
+
+| The pain | Where the time went |
+|---|---|
+| **Gathering, not thinking** | Most of the hour went to collecting pods, events, logs, metrics and recent changes, by hand, one tool at a time |
+| **Noise** | Three alerts looked like three problems, and nothing tied them to one cause |
+| **Knowledge in heads** | "Has this happened before?" depended on who was awake |
+| **Risky fixes** | A change made under pressure: unreviewed, unaudited, and in this case useless |
+| **No memory** | The lesson was lost the moment the incident closed |
+
+None of this is about skill. It is about doing slow, repetitive work at the worst possible hour.
+
+---
+
+## Part 2 — What if the first half hour was already done?
+
+What if, by the time Dimas opened his eyes:
+- the evidence had already been gathered;
+- the three alerts had already been tied together;
+- last quarter's fix had already been recalled;
+- a fix had been proposed, checked, and was waiting for one click — or had been honestly rejected because the evidence did not support it?
+
+That is the **DevOps AI Agent Stack**. It is an AI teammate that sits in the on-call channel. It does the investigation the way an experienced SRE would, writes it up as a structured Root Cause Analysis in the alert's own thread, and **never changes anything without a human's approval**.
+
 | 🔎 **Investigates** | 🧠 **Remembers** | 🛡️ **Fixes safely** | 🧭 **Onboards** |
 |---|---|---|---|
-| Minutes from alert to a structured RCA in the alert's own thread | Every incident, every confirmed cause, every fix that did or did not work | One fix at a time, dry-run first, executed only after a human clicks *Approve* | "Explain this cluster" answered from the live cluster, not from a stale wiki |
+| Minutes from alert to a structured RCA, in the alert's own thread | Every incident, every confirmed cause, every fix that did or did not work | One fix at a time, dry-run first, executed only after a human clicks *Approve* | "Explain this cluster" answered from the live cluster, not from a stale wiki |
 
 ---
 
-## The problem it solves
+## Part 3 — The same alert, with the agent
 
-When an alert fires, the first half hour of an incident looks the same every time: open five dashboards, list pods, read events, grep logs, check what was deployed. It all happens under pressure, and it is often done by whoever is least familiar with the service.
-
-| Without the agent | With the agent |
-|---|---|
-| On-call collects pods, events, logs, metrics and recent deploys by hand | All of that is gathered **in parallel, in seconds**, before anyone opens a laptop |
-| "Has this happened before?" lives in someone's head | Past incidents, **human-confirmed causes** and earlier fixes are recalled automatically |
-| A fix is applied with `kubectl` at 3 a.m., unreviewed and unaudited | The fix is **whitelisted, dry-run, approved in Slack, audited and verified** |
-| Five related alerts open five threads | **One incident, one thread**: neighbouring alerts join the thread that is already open |
-| A newcomer needs weeks to learn what runs where | `@agent explain this cluster` produces tables built from the cluster itself |
-
----
-
-## See it in action — a real incident
-
-From the `dev` cluster on 2026-10-21, as recorded in the agent's logs.
+*This one is real: the `dev` cluster on 2026-10-21, as recorded in the agent's logs.*
 
 | Time | What happened |
 |---|---|
-| **01:44:05** | Alertmanager fires `UnexpectedErrorLog` — **3 alerts across `checkout-gateway` and `storefront`**. The agent opens one thread for the whole group. |
+| **01:44:05** | Alertmanager fires `UnexpectedErrorLog` — 3 alerts across `checkout-gateway` and `storefront`. The agent opens **one thread for the whole group**. |
 | 01:44:08 | It gathers what changed recently and locates the GitOps overlay that defines the affected workloads. |
 | 01:45:27 | It splits the work: **two sub-investigations run in parallel**, one per service, each testing its own hypothesis. |
 | 01:46:06 | The first sub-investigation fires **9 tool calls at once**: Alertmanager, two workload lookups, error-rate PromQL, endpoints, error logs, pods, events, services. |
-| 01:47:46 | Both sub-investigations report back. The lead combines their verdicts. |
-| **01:49:05** | **The RCA card is posted in Slack, 5 minutes after the alert.** |
-| 01:49:11 | It considers a fix. **A rolling restart is refused**: the kubelet had already restarted those pods 9 times, so a restart would change nothing. |
+| 01:47:46 | Both sub-investigations report back, and the lead combines their verdicts. |
+| **01:49:05** | **The RCA card is posted in Slack, 5 minutes after the alert**, with the evidence behind every claim. |
+| 01:49:11 | It considers a fix. **A rolling restart is refused**: the kubelet had already restarted those pods 9 times, so a restart would change nothing. This is the 02:20 mistake from Part 1, caught by code. |
 | 01:49:16 | **An image change is refused too**: no evidence in the thread showed that the proposed image exists. Nothing was guessed and nothing was touched. |
-| 01:49:17 | The alert had resolved while the RCA was being written, so the incident is **closed automatically** on store. |
+| 01:49:17 | The alert had resolved while the RCA was being written, so the incident is **closed automatically**. |
 | 01:52:30 | An engineer asks in the thread, *"coba tunjukin log terakhirnya"* ("show me the latest logs"). **The answer comes back in 65 seconds**, from 3 fresh tool calls. |
 
-The fix that was not proposed matters as much as the RCA. The agent is built to say "no" when the evidence is not there.
+### Part 1 versus Part 3
+
+| | Before | With the agent |
+|---|---|---|
+| Evidence gathered | By hand, one tool at a time | Automatically, in parallel, before anyone is at a laptop |
+| Three alerts | Three problems to untangle | One thread, one investigation |
+| "Seen this before?" | Ask whoever is awake | Recalled from memory, with human-confirmed causes first |
+| The restart | Made at 02:20, useless and unaudited | Refused by a gate, with the reason posted |
+| The lesson | Lost by morning | `@agent learn` stores it for next time |
+
+The fix that was **not** made matters as much as the RCA. The agent is built to say "no" when the evidence is not there.
 
 ---
 
-## What it does
+## Part 4 — What the agent does
 
 ### 🔎 Investigate
 - **Alert → RCA in Slack.** The card holds:
