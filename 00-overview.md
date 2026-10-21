@@ -142,8 +142,6 @@ The fix that was **not** made matters as much as the RCA. The agent is built to 
 
 ---
 
----
-
 ## Safe by design
 
 1. **The investigator cannot write.** Write tools are invisible to the model that investigates, and refused if it calls one anyway.
