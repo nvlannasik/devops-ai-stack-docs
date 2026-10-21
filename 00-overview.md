@@ -276,7 +276,7 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 | AI / LLM | Anthropic SDK, OpenAI SDK, AWS SQS (private LLM path) |
 | Observability | Kubernetes, Prometheus, Alertmanager, Loki, Tempo, Jaeger |
 | Data | PostgreSQL, Redis |
-| Dashboard | React, Tailwind CSS, React Flow |
+| Dashboard | Server-rendered HTML; React, Tailwind CSS and React Flow for the map pages |
 | Delivery | Docker, GitHub Actions, Helm, Flux CD |
 | Built with | Claude Code, guided by SDLC practice and a DevOps engineer's point of view |
 
@@ -292,7 +292,7 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 | **devops-mcp-server** | `devops-mcp-server` | The hands: 55 read-only tools and 8 guarded write tools over the Model Context Protocol |
 | **llm-worker** | `devops-ai-agent-worker` | The bridge into the private network: private LLM and GitHub Enterprise, outbound-only |
 | **Helm chart** | `devops-ai-helm-charts` | One release for all three, refusing to render if their shared settings disagree |
-| **GitOps manifests** | `gitops-devops-ai-manifest` | Flux + Kustomize, the source of truth for each cluster |
+| **GitOps manifests** | `gitops-devops-ai-manifest` | Flux + Kustomize, the source of truth for what runs |
 | **Sample apps** | `devops-sample-apps` | A four-service checkout stack with fault switches, used to rehearse and benchmark incidents |
 
 ## By the numbers

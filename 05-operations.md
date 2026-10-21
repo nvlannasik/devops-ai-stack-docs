@@ -13,7 +13,7 @@
 
 ## The dashboard
 
-The dashboard is read-only and served on port `3001` of the agent. It is deliberately not exposed through the Ingress. Reach it with:
+The dashboard is read-only and served on port `3001` of the agent, behind one shared password. Expose it through the agent chart's optional `ingress` (route it to port `3001`) and set `dashboard.publicUrl`, so the postmortem links the agent posts in Slack open from a phone too. Without an Ingress, reach it with:
 
 ```bash
 kubectl -n devops-tools port-forward deploy/devops-ai-agent 3001:3001

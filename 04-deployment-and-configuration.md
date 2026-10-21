@@ -11,7 +11,7 @@
 3. **`gitops-devops-ai-manifest`** (Flux + Kustomize):
    - `clusters/<cluster>/` — the Flux bootstrap for each cluster;
    - `apps/base/` — applications (devops-ai-stack, the sample apps, loadgen) and systems (postgres, prometheus, alertmanager, loki, fluent-bit, grafana, jaeger, cert-manager, longhorn, …);
-   - `apps/dev/` — the dev overlay, the only overlay written so far.
+   - `apps/<env>/` — the overlay for each environment: image tags, hosts, LLM backends, users.
 4. **Flux** reconciles HelmRelease `devops-ai-stack` (chart 0.7.0) into namespace `devops-tools`.
 
 - **GitOps is the source of truth.** A change to what runs in a cluster is a commit to `gitops-devops-ai-manifest`.
@@ -48,10 +48,10 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 | MCP | `MCP_TRANSPORT=http`, `MCP_HTTP_URL`, `MCP_AUTH_TOKEN`, `MCP_TOOL_TIMEOUT_SECONDS` (45) | The token must match the MCP server's |
 | Storage | `MEMORY_BACKEND=redis`, `REDIS_*`; `DB_HOST`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SSL_MODE` | Incident memory is disabled if `DB_HOST` is unset |
 | Budgets | `MAX_CONCURRENT_INVESTIGATIONS` (5), `INVESTIGATION_TIMEOUT_SECONDS` (300), `MENTION_TOOL_ROUNDS` (2), `TOUR_TOOL_ROUNDS` (4) | |
-| Delegation | `SUBAGENT_ENABLED`, `SUBAGENT_MAX_FANOUT` (3), `SUBAGENT_TOOL_ROUNDS` (3), `SUBAGENT_MAX_ITERATIONS` (5) | |
+| Delegation | `SUBAGENT_ENABLED`, `SUBAGENT_MAX_FANOUT` (3), `SUBAGENT_TOOL_ROUNDS` (3), `SUBAGENT_MAX_ITERATIONS` (5) | Off unless `SUBAGENT_ENABLED=true` |
 | Remediation | `GITOPS_REMEDIATION_ENABLED`, `REMEDIATION_VERIFY_DELAY_SECONDS` (300) | |
 | Incidents | `INCIDENT_RECONCILE_ENABLED` and its `_MIN_AGE`, `_CONFIRM` and `_BATCH` settings | Closes incidents whose resolved webhook never arrived |
-| Dashboard | `DASHBOARD_ENABLED`, `DASHBOARD_PORT` (3001), `DASHBOARD_PASSWORD`, `DASHBOARD_PUBLIC_URL` | Unset password ⇒ every page answers `503` |
+| Dashboard | `DASHBOARD_ENABLED`, `DASHBOARD_PORT` (3001), `DASHBOARD_PASSWORD`, `DASHBOARD_PUBLIC_URL` (chart: `dashboard.publicUrl`) | Unset password ⇒ every page answers `503`. The public URL is what the postmortem links in Slack point to. |
 | Tracing | `TRACE_ENABLED` (true), `LOG_LEVEL` | |
 
 ## Key settings — devops-mcp-server

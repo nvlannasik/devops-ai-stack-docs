@@ -2,6 +2,8 @@
 
 > **Audience:** everyone who works with the agent in Slack. Parent: *DevOps AI Agent Stack — Overview*.
 
+Everything on this page works in the Slack **desktop and mobile** app alike, including the *Approve* and *Reject* buttons. An alert can be handled end to end from a phone.
+
 ## What you will see when an alert fires
 
 1. A new thread in the alert channel, opened by the agent.
@@ -23,7 +25,7 @@ A neighbouring alert that shares the cause, such as an upstream service failing,
 
 ## Talking to the agent
 
-Mention the bot. Only users on the allowlist can; others get a private "not allowed" note.
+Mention the bot. Users on the allowlist can, and so can the on-call and approver users; others get a private "not allowed" note.
 
 | You write | What happens |
 |---|---|
@@ -70,7 +72,7 @@ A human-confirmed cause (`learn`) outranks the agent's own RCA. The Summary and 
 
 ## Tips
 
-- **Your phone is enough.** Everything on this page works in the Slack mobile app, including the *Approve* and *Reject* buttons. No laptop, VPN or kubeconfig is needed.
+- **Your phone is enough.** No laptop, VPN or kubeconfig is needed: ask in the thread, and approve from the card.
 - **Ask in the alert's thread.** The agent then knows which alert and namespace you mean.
 - **Name the namespace and workload** in a fresh question. It narrows the investigation and the tool budget goes further.
 - **Ask for one fix explicitly** ("restart checkout-gateway", "set the image to v1.4.1") if you know what you want. It still goes through the approval card.

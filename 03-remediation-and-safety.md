@@ -66,12 +66,12 @@ The verdict is remembered, so the next occurrence of the same alert sees "this f
 
 | Who | Can do |
 |---|---|
-| `SLACK_ALLOWED_USERS` | Mention the agent, ✅-learn |
+| `SLACK_ALLOWED_USERS` (plus on-call and approvers; empty = anyone in the bot's channels) | Mention the agent, ✅-learn |
 | `SLACK_APPROVER_USERS` (fallback: on-call users) | Approve or reject remediation cards |
 | `SLACK_ONCALL_USERS` | Paged automatically on Low-confidence RCAs |
 | Alertmanager | `POST /alert` with the shared `ALERT_WEBHOOK_TOKEN` |
 | Agent → MCP server | Shared `MCP_AUTH_TOKEN` bearer token |
-| Dashboard viewers | One shared password exchanged for a signed cookie. Read-only. Not exposed through the Ingress. |
+| Dashboard viewers | One shared password exchanged for a signed cookie. Read-only. Reached by port-forward, or through the chart's optional Ingress. |
 
 ## Data protection
 

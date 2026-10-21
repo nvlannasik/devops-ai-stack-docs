@@ -25,7 +25,7 @@ In short:
 - **One group, one thread.** Alertmanager is configured with `group_by: [alertname, namespace]`. Ten crash-looping pods of one alert become one thread, one investigation and one approval card. The group's text lists the distinct services and pods it covers.
 - **Deduplication.** The same alert group is processed once per 12 hours. A *resolved* webhook releases the claim, so the next real firing gets a fresh investigation.
 - **Cross-alert correlation.** Suppose a new alert group's service is the same as, or one call-graph edge away from, an unresolved incident in the same namespace that started within the last 30 minutes. The call graph comes from `http_client_requests_total{service,peer}`. In that case the alert is posted as **🔗 Related alert** into the existing thread instead of opening a new one. It is stored as a child of that incident and gets no card of its own. Any failure here falls back to the normal path.
-- **Mentions** are accepted only from `SLACK_ALLOWED_USERS`; anyone else gets an ephemeral refusal.
+- **Mentions** are accepted from `SLACK_ALLOWED_USERS`, plus the on-call and approver users; anyone else gets an ephemeral refusal. An empty allowlist lets anyone in a channel the bot is in, with a warning at boot.
 
 ## 4. Context before the first LLM call
 

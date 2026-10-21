@@ -6,7 +6,7 @@
 
 ### devops-ai-agent (the orchestrator)
 A Node.js 24 / TypeScript service. One process holds:
-- **Slack integration** (Bolt, Socket Mode — outbound WebSocket, no public URL needed): mentions, ✅ reactions, approval buttons.
+- **Slack integration** (Bolt, Socket Mode — outbound WebSocket, no public URL needed): mentions, ✅ reactions, approval buttons. Everything is plain Slack messages and Block Kit buttons, so it works the same in the desktop and the mobile app.
 - **Alertmanager webhook** `POST /alert` (bearer-token protected). It answers `200` at once and investigates in the background.
 - **Investigation loop**: builds the context, calls the LLM, executes tool calls in parallel, and runs the gates.
 - **Remediation flow**: proposal → gate chain → dry-run → approval card → execution → verification poller.
@@ -36,7 +36,7 @@ An SQS consumer that runs **inside the private network** and needs **outbound ac
 
 It drains gracefully on SIGTERM, sends poison messages to a DLQ, and processes requests concurrently (`SQS_MAX_CONCURRENCY`).
 
-## Deployment topology (today)
+## Deployment topology
 
 ![DevOps AI Agent Stack architecture](diagrams/architecture/architecture.png)
 

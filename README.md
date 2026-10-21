@@ -53,4 +53,4 @@ ARCHIFY_CHROME_NO_SANDBOX=1 ARCHIFY_CHROME=<chrome-or-chromium> \
 
 Then export PNG and light SVG from the HTML's **Export** menu. The receipts that `finalize` writes are git-ignored.
 
-Facts are as of 2026-10-21: agent `f423d11`, mcp-server `9989bcb`, chart `0.7.0`.
+Facts are as of 2026-10-22: agent `f423d11`, mcp-server `9989bcb`, chart `0.7.0`.
