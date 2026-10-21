@@ -7,7 +7,15 @@
 
 ---
 
-## Part 1 — The night every on-call engineer knows
+## Background
+
+Our services run on **Kubernetes** and are deployed declaratively with **Flux GitOps**. Health is watched by **Prometheus** (metrics), **Loki** (logs), **Jaeger** (traces) and **Alertmanager**, which turns a bad signal into an alert in **Slack**.
+
+From there, an incident belongs to whoever is on call. The tooling to *detect* a problem is mature. What happens next is still almost entirely manual: one engineer, at any hour, turns an alert into an understanding of what broke and why, using five different tools.
+
+---
+
+## The problem
 
 *A composite of the nights before the agent existed. The names are made up; the shape will be familiar.*
 
@@ -27,7 +35,7 @@
 
 **The next morning,** nothing is written down. Three months later the same thing happens, to someone else, and they start again from zero.
 
-### What actually went wrong
+### Why it hurts
 
 | The pain | Where the time went |
 |---|---|
@@ -41,23 +49,25 @@ None of this is about skill. It is about doing slow, repetitive work at the wors
 
 ---
 
-## Part 2 — What if the first half hour was already done?
+## Imagine if…
 
-What if, by the time Dimas opened his eyes:
-- the evidence had already been gathered;
-- the three alerts had already been tied together;
-- last quarter's fix had already been recalled;
-- a fix had been proposed, checked, and was waiting for one click — or had been honestly rejected because the evidence did not support it?
+- **…the evidence was already gathered** by the time the phone buzzed: pods, events, logs, metrics, traces and recent changes.
+- **…three alerts arrived as one incident**, because something had already worked out that they share a cause.
+- **…"have we seen this before?" answered itself**, with the fix a teammate confirmed last quarter.
+- **…a fix was already waiting for one click.** It had been checked, dry-run and explained. Or it had been honestly refused, because the evidence did not support it.
+- **…the lesson survived the night**, and the next person started where this one finished.
 
-That is the **DevOps AI Agent Stack**. It is an AI teammate that sits in the on-call channel. It does the investigation the way an experienced SRE would, writes it up as a structured Root Cause Analysis in the alert's own thread, and **never changes anything without a human's approval**.
+---
+
+## The solution
+
+The **DevOps AI Agent Stack** is an AI teammate that sits in the on-call channel. It investigates every alert the way an experienced SRE would, writes it up as a structured Root Cause Analysis in the alert's own thread, and **never changes anything without a human's approval**.
 
 | 🔎 **Investigates** | 🧠 **Remembers** | 🛡️ **Fixes safely** | 🧭 **Onboards** |
 |---|---|---|---|
 | Minutes from alert to a structured RCA, in the alert's own thread | Every incident, every confirmed cause, every fix that did or did not work | One fix at a time, dry-run first, executed only after a human clicks *Approve* | "Explain this cluster" answered from the live cluster, not from a stale wiki |
 
----
-
-## Part 3 — The same alert, with the agent
+### Proof: the same kind of night, with the agent
 
 *This one is real: the `dev` cluster on 2026-10-21, as recorded in the agent's logs.*
 
@@ -69,12 +79,12 @@ That is the **DevOps AI Agent Stack**. It is an AI teammate that sits in the on-
 | 01:46:06 | The first sub-investigation fires **9 tool calls at once**: Alertmanager, two workload lookups, error-rate PromQL, endpoints, error logs, pods, events, services. |
 | 01:47:46 | Both sub-investigations report back, and the lead combines their verdicts. |
 | **01:49:05** | **The RCA card is posted in Slack, 5 minutes after the alert**, with the evidence behind every claim. |
-| 01:49:11 | It considers a fix. **A rolling restart is refused**: the kubelet had already restarted those pods 9 times, so a restart would change nothing. This is the 02:20 mistake from Part 1, caught by code. |
+| 01:49:11 | It considers a fix. **A rolling restart is refused**: the kubelet had already restarted those pods 9 times, so a restart would change nothing. This is the 02:20 mistake from the story above, caught by code. |
 | 01:49:16 | **An image change is refused too**: no evidence in the thread showed that the proposed image exists. Nothing was guessed and nothing was touched. |
 | 01:49:17 | The alert had resolved while the RCA was being written, so the incident is **closed automatically**. |
 | 01:52:30 | An engineer asks in the thread, *"coba tunjukin log terakhirnya"* ("show me the latest logs"). **The answer comes back in 65 seconds**, from 3 fresh tool calls. |
 
-### Part 1 versus Part 3
+### Before and after
 
 | | Before | With the agent |
 |---|---|---|
@@ -86,9 +96,11 @@ That is the **DevOps AI Agent Stack**. It is an AI teammate that sits in the on-
 
 The fix that was **not** made matters as much as the RCA. The agent is built to say "no" when the evidence is not there.
 
+The fix that was **not** made matters as much as the RCA. The agent is built to say "no" when the evidence is not there.
+
 ---
 
-## Part 4 — What the agent does
+## Features
 
 ### 🔎 Investigate
 - **Alert → RCA in Slack.** The card holds:
@@ -129,6 +141,8 @@ The fix that was **not** made matters as much as the RCA. The agent is built to 
   - the cluster map;
   - what the agent remembers.
 - **Every run recorded and replayable.** A change to the agent is tested against real past incidents before it ships.
+
+---
 
 ---
 
