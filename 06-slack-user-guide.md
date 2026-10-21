@@ -70,6 +70,7 @@ A human-confirmed cause (`learn`) outranks the agent's own RCA. The Summary and 
 
 ## Tips
 
+- **Your phone is enough.** Everything on this page works in the Slack mobile app, including the *Approve* and *Reject* buttons. No laptop, VPN or kubeconfig is needed.
 - **Ask in the alert's thread.** The agent then knows which alert and namespace you mean.
 - **Name the namespace and workload** in a fresh question. It narrows the investigation and the tool budget goes further.
 - **Ask for one fix explicitly** ("restart checkout-gateway", "set the image to v1.4.1") if you know what you want. It still goes through the approval card.

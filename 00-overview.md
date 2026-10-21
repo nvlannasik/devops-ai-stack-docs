@@ -1,7 +1,7 @@
 # DevOps AI Agent Stack
 
 > ### Your first responder never sleeps.
-> An AI on-call teammate that lives in Slack. It investigates every alert the way your best SRE would, explains the root cause with evidence, and proposes a fix that **you** approve.
+> An AI on-call teammate that lives in Slack. It investigates every alert the way your best SRE would, explains the root cause with evidence, and proposes a fix that **you** approve — from your phone, wherever you are.
 
 **Author:** Ahmad Naoval Annasik, DevOps Engineer · **Audience:** everyone — on-call, engineers, leads.
 
@@ -26,14 +26,14 @@ Every phase of the software development life cycle feeds the next: planning, req
 
 It rests on four pillars:
 
-| Pillar | What it is | What it tells us | In our stack |
+| Pillar | What it is | What it tells us | Common choice |
 |---|---|---|---|
 | **Metrics** | Numeric time series (a value, a timestamp, labels), cheap to store and fast to query | *Something is wrong*: CPU, memory, latency, error rate, storage | Prometheus |
 | **Logs** | Timestamped records of events, with severity, source and message | *What happened*: the detailed story behind an issue | Loki (shipped by Fluent Bit) |
 | **Traces** | The end-to-end journey of one request, made of spans with durations | *Where it happened*: where the time went and where it failed | Jaeger / Tempo |
 | **Alerts** | Rules evaluated over metrics or logs, with a severity and a destination | *Someone needs to act*: the bridge from detection to response | Alertmanager → Slack |
 
-Our services run on **Kubernetes**, are deployed with **Flux GitOps**, and have all four pillars in place.
+Together these make a **common minimum standard** for observability on Kubernetes: Prometheus for metrics, Loki with Fluent Bit for logs, Jaeger or Tempo for traces, and Alertmanager routing to Slack, with workloads delivered by GitOps (Flux). It is the stack the agent is built to work with.
 
 > **We have all the data. But who connects the dots?**
 > When an alert fires, an engineer still opens every panel, matches the timestamps, and pieces the story together by hand.
@@ -81,6 +81,7 @@ None of this is about skill. It is about doing slow, repetitive work at the wors
 
 ## Imagine if…
 
+- **…you could answer the page from your phone**: read the cause, ask for the logs and approve the fix in Slack, without opening a laptop or rushing back to your desk.
 - **…the evidence was already gathered** by the time the phone buzzed: pods, events, logs, metrics, traces and recent changes.
 - **…three alerts arrived as one incident**, because something had already worked out that they share a cause.
 - **…"have we seen this before?" answered itself**, with the fix a teammate confirmed last quarter.
@@ -105,26 +106,28 @@ Around that loop sit **memory** (the conversation and the findings so far), **in
 
 ### Why the existing ones did not fit
 
-DevOps-specific agents exist, HolmesGPT among them, and they are powerful. They were hard to adopt in our environment:
+DevOps-specific agents exist, HolmesGPT among them, and they are powerful. They are often hard to adopt in an enterprise environment:
 
 | Challenge | Why it blocked adoption |
 |---|---|
-| **Complex setup** | CLI-based, installed and configured on each engineer's own device |
-| **Security policy** | Did not comply with our corporate security policy |
-| **Private LLM** | Could not connect to our private corporate LLM |
-| **Our workflow** | Did not fit the observability flow we already run |
+| **Complex setup** | CLI-based, installed and configured on each engineer's own device — so it is only there when you are at that device |
+| **Security policy** | Does not comply with a strict corporate security policy |
+| **Private LLM** | Cannot connect to a private, in-house LLM |
+| **Workflow fit** | Does not fit the observability flow a team already runs |
 
-> **What we need:** an AI agent that runs **centrally**, follows **our security policy**, uses **our private LLM**, and works inside **our existing observability flow**.
+> **What is needed:** an AI agent that runs **centrally**, is reachable **from anywhere through Slack**, follows **the organisation's security policy**, can use **a private LLM**, and works inside **the existing observability flow**.
 
 ---
 
 ## The solution
 
-The **DevOps AI Agent Stack** is that agent: an AI teammate that sits in the on-call channel. It investigates every alert the way an experienced SRE would, writes it up as a structured Root Cause Analysis in the alert's own thread, and **never changes anything without a human's approval**. It is an AI-powered assistant inside the flow we already have, not a replacement for it.
+The **DevOps AI Agent Stack** is that agent: an AI teammate that sits in the on-call channel. It investigates every alert the way an experienced SRE would, writes it up as a structured Root Cause Analysis in the alert's own thread, and **never changes anything without a human's approval**. It is an AI-powered assistant inside the flow a team already has, not a replacement for it.
 
-| 🔎 **Investigates** | 🧠 **Remembers** | 🛡️ **Fixes safely** | 🧭 **Onboards** |
-|---|---|---|---|
-| Minutes from alert to a structured RCA, in the alert's own thread | Every incident, every confirmed cause, every fix that did or did not work | One fix at a time, dry-run first, executed only after a human clicks *Approve* | "Explain this cluster" answered from the live cluster, not from a stale wiki |
+Because it lives in Slack, it goes wherever Slack goes. **The on-call engineer can work an incident from the Slack mobile app**: no laptop, no VPN, no kubeconfig on the device.
+
+| 📱 **Anywhere** | 🔎 **Investigates** | 🧠 **Remembers** | 🛡️ **Fixes safely** | 🧭 **Onboards** |
+|---|---|---|---|---|
+| The whole incident from Slack on your phone, no laptop needed | Minutes from alert to a structured RCA, in the alert's own thread | Every incident, every confirmed cause, every fix that did or did not work | One fix at a time, dry-run first, executed only after a human clicks *Approve* | "Explain this cluster" answered from the live cluster, not from a stale wiki |
 
 ### Goals
 
@@ -132,27 +135,10 @@ The **DevOps AI Agent Stack** is that agent: an AI teammate that sits in the on-
 |---|---|---|
 | 01 | **Faster time to root cause** | Every alert becomes an evidence-based RCA in Slack within minutes, not after manual digging in Grafana |
 | 02 | **Automated correlation** | Metrics, logs, traces and cluster state are connected automatically — the step engineers still did by hand |
-| 03 | **Fit the existing workflow** | Works inside Slack and our current observability stack |
+| 03 | **Fit the existing workflow** | Works inside Slack and the standard observability stack, on desktop and mobile alike |
 | 04 | **Safe for remediation** | Every change is dry-run, human-approved, audited and verified |
-| 05 | **Built for our environment** | Runs in our infrastructure, follows our security policy, and can use our private LLM |
+| 05 | **Enterprise-ready** | Runs in your own infrastructure, follows your security policy, and can use a private LLM |
 | 06 | **Learn from every incident** | Past RCAs and confirmed fixes are reused, so recurring issues are resolved faster |
-
-### Proof: a real incident, with the agent
-
-*This one is real: the `dev` cluster on 2026-10-21, as recorded in the agent's logs.*
-
-| Time | What happened |
-|---|---|
-| **01:44:05** | Alertmanager fires `UnexpectedErrorLog` — 3 alerts across `checkout-gateway` and `storefront`. The agent opens **one thread for the whole group**. |
-| 01:44:08 | It gathers what changed recently and locates the GitOps overlay that defines the affected workloads. |
-| 01:45:27 | It splits the work: **two sub-investigations run in parallel**, one per service, each testing its own hypothesis. |
-| 01:46:06 | The first sub-investigation fires **9 tool calls at once**: Alertmanager, two workload lookups, error-rate PromQL, endpoints, error logs, pods, events, services. |
-| 01:47:46 | Both sub-investigations report back, and the lead combines their verdicts. |
-| **01:49:05** | **The RCA card is posted in Slack, 5 minutes after the alert**, with the evidence behind every claim. |
-| 01:49:11 | It considers a fix. **A rolling restart is refused**: the kubelet had already restarted those pods 9 times, so a restart would change nothing. |
-| 01:49:16 | **An image change is refused too**: no evidence in the thread showed that the proposed image exists. Nothing was guessed and nothing was touched. |
-| 01:49:17 | The alert had resolved while the RCA was being written, so the incident is **closed automatically**. |
-| 01:52:30 | An engineer asks in the thread, *"coba tunjukin log terakhirnya"* ("show me the latest logs"). **The answer comes back in 65 seconds**, from 3 fresh tool calls. |
 
 ### Thirty days on the dashboard
 
@@ -169,6 +155,7 @@ The **DevOps AI Agent Stack** is that agent: an AI teammate that sits in the on-
 
 | | Before | With the agent |
 |---|---|---|
+| Where you respond | At a laptop, on VPN, with Grafana and kubectl open | Anywhere, from Slack on your phone |
 | Evidence gathered | By hand, one panel at a time | Automatically, in parallel, before anyone is at a laptop |
 | Related alerts | Separate problems to untangle | One thread, one investigation |
 | "Seen this before?" | Ask whoever is awake | Recalled from memory, with human-confirmed causes first |
@@ -180,6 +167,15 @@ The fix that was **not** made matters as much as the RCA. The agent is built to 
 ---
 
 ## Features
+
+### 📱 Respond from anywhere
+The agent is not a desktop tool. Everything happens in Slack, so **the Slack mobile app is a full on-call console**:
+- **Read the RCA** the moment the alert fires: cause, evidence, confidence and recent changes, in the alert's thread.
+- **Look at the cluster by asking.** *"Show me the logs"*, *"which pods are restarting?"*, *"what changed in the last hour?"*: the agent runs the queries and answers in the thread.
+- **Approve or reject the fix with one tap.** The same approver list, dry-run and 15-minute expiry apply on a phone as on a desk.
+- **Nothing to install or carry.** Cluster access is held centrally by the agent; the phone never needs a VPN, a kubeconfig or Grafana.
+
+Incidents happen at dinner, in traffic or in bed. The first response no longer waits until someone is back at a desk.
 
 ### 🔎 Investigate
 - **Alert → RCA in Slack.** The card holds:
@@ -243,7 +239,7 @@ The fix that was **not** made matters as much as the RCA. The agent is built to 
 
 ## Using a private LLM
 
-A public LLM is not always an option. Our LLM sits **inside** the corporate network, and our services run **outside** it. How do they talk?
+A public LLM is not always an option. In many organisations the approved LLM sits **inside** the corporate network while the services run **outside** it. How do they talk?
 
 | Option | How it works | Verdict |
 |---|---|---|
@@ -316,7 +312,7 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 | **Personal initiative** | Built on personal time and resources |
 | **Built with Claude Code** | "Vibe coded", but guided by SDLC best practice and reviewed from a DevOps engineer's point of view |
 | **Focused scope** | Kubernetes observability at the **infrastructure** level, not yet at the application-code level |
-| **Built for real workflows** | Designed around common incident-handling use cases and the security policy we work under |
+| **Built for real workflows** | Designed around common incident-handling use cases and the security policies enterprises work under |
 
 ## Read next
 
