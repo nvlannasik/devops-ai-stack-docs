@@ -96,8 +96,6 @@ The **DevOps AI Agent Stack** is an AI teammate that sits in the on-call channel
 
 The fix that was **not** made matters as much as the RCA. The agent is built to say "no" when the evidence is not there.
 
-The fix that was **not** made matters as much as the RCA. The agent is built to say "no" when the evidence is not there.
-
 ---
 
 ## Features
