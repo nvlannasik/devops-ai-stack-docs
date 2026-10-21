@@ -126,7 +126,50 @@ The fix that was **not** made matters as much as the RCA. The agent is built to 
 
 ---
 
+## See it in action
+
+A table of *before* and *after* is a claim. Here is what it looks like on a night like the one in *A night on call*: one alert, worked end to end from a phone.
+
+### 1. The alert arrives, and the answer is already there
+The phone buzzes. By the time the thread is open, the agent has read the pods, events, logs, metrics and recent changes, and posted its RCA.
+
+> 🖼️ **Screenshot:** `images/demo-01-rca-mobile.png`. Slack mobile: the alert thread with the RCA card (root cause, evidence, confidence, recent changes).
+
+### 2. Ask, without opening a laptop
+Something in the RCA needs a closer look. Instead of a VPN, Grafana and `kubectl`, the engineer types a question into the thread.
+
+> 🖼️ **Screenshot:** `images/demo-02-follow-up.png`. A follow-up such as *"show me the latest logs"* and the agent's answer in the same thread.
+
+### 3. One tap to fix, and proof that it worked
+The agent proposes one fix, already dry-run. The engineer approves it with one tap on the phone, and about five minutes later the agent reports whether it helped.
+
+> 🖼️ **Screenshot:** `images/demo-03-approval.png`. The approval card with *Approve* / *Reject*, then the verification verdict (`recovered`).
+
+### 4. The GitOps way, when the workload lives in Git
+For a Flux-managed workload the fix does not touch the cluster. The card shows the Git diff, and approving opens a pull request.
+
+> 🖼️ **Screenshot:** `images/demo-04-gitops-pr.png`. The card with the diff, and the pull request it opened.
+
+### 5. The morning after
+The incident is closed, the lesson is stored with `@agent learn`, and the dashboard shows what happened, what it cost and which gates fired.
+
+> 🖼️ **Screenshot:** `images/demo-05-dashboard.png`. The dashboard: incident list, remediation verdicts and LLM cost.
+
+### Demo videos
+
+| Scenario | What you do | What the agent does | Video |
+|---|---|---|---|
+| **Ask, investigate, follow up** | *"Check the logs of the storefront service"*, then *"Why is it failing?"* | Reads logs, metrics and pod status, then answers the follow-up in the same thread | 🎬 *add link* |
+| **Guarded remediation** | *"List the deployments in namespace sample-apps"*, pick one, then *"Restart it"* | Dry-runs the restart first, then posts an approval card. You approve with one tap on your phone, and it verifies the result. | 🎬 *add link* |
+| **Fix the GitOps way** | *"Scale storefront to 3 replicas"* | Sees that the workload is Flux-managed, so it does not touch the cluster directly. The card shows the Git diff; approving opens a PR, and Flux rolls it out after the merge. | 🎬 *add link* |
+
+Every step above comes from a feature that works the same way for every alert. The next section walks through them one by one.
+
+---
+
 ## Features
+
+What made that night short, feature by feature.
 
 ### 📱 Respond from anywhere
 The agent is not a desktop tool. Everything happens in Slack, so **the Slack mobile app is a full on-call console**:
@@ -177,10 +220,7 @@ Incidents happen at dinner, in traffic or in bed. The first response no longer w
   - what the agent remembers.
 - **Every run recorded and replayable.** A change to the agent is tested against real past incidents before it ships.
 
-### ▶️ Try it: three scenarios
-
-| Scenario | What you do | What the agent does |
-|---|---|---|
+---|---|---|
 | **Ask, investigate, follow up** | *"Check the logs of the storefront service"*, then *"Why is it failing?"* | Reads logs, metrics and pod status, then answers the follow-up in the same thread |
 | **Guarded remediation** | *"List the deployments in namespace sample-apps"*, pick one, then *"Restart it"* | Dry-runs the restart first, then posts an approval card. You approve with one tap on your phone, and it verifies the result. |
 | **Fix the GitOps way** | *"Scale storefront to 3 replicas"* | Sees that the workload is Flux-managed, so it does not touch the cluster directly. The card shows the Git diff; approving opens a PR, and Flux rolls it out after the merge. |

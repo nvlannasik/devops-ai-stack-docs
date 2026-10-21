@@ -35,6 +35,8 @@ Five diagrams, made with [archify](https://github.com/tt-a1i/archify) (v3.2.0), 
 | How an investigation works | How an Investigation Works | `investigation.png` · `.svg` · `.html` |
 | Guarded remediation | Remediation and Safety Guardrails | `remediation.png` · `.svg` · `.html` |
 
+**Demo screenshots and videos.** The Overview's *See it in action* section has a 🖼️ placeholder for each screenshot, named `images/demo-01-…png` to `demo-05-…png`, and a 🎬 *add link* cell for each video. Replace each placeholder line with the image, and each cell with the video link or an embedded video.
+
 **Getting them into Confluence.** The pages reference the PNGs with relative paths, which Confluence does not follow. On each page:
 1. Upload the PNG as an attachment, or drag it into the editor.
 2. Put it where the `![…](diagrams/…png)` line was.
