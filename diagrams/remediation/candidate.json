@@ -1,0 +1,265 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "Guarded Remediation",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": "diagrams/remediation/remediation.html"
+  },
+  "lanes": [
+    {
+      "id": "slack",
+      "label": "Slack (approvers)"
+    },
+    {
+      "id": "agent",
+      "label": "devops-ai-agent"
+    },
+    {
+      "id": "mcp",
+      "label": "devops-mcp-server"
+    },
+    {
+      "id": "worker",
+      "label": "llm-worker \u2192 GitHub"
+    },
+    {
+      "id": "stop",
+      "label": "Stopped",
+      "variant": "exception"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p-check",
+      "label": "Checked by code",
+      "fromCol": 0,
+      "toCol": 2,
+      "variant": "security"
+    },
+    {
+      "id": "p-human",
+      "label": "Human decision",
+      "fromCol": 3,
+      "toCol": 3,
+      "variant": "emphasis"
+    },
+    {
+      "id": "p-run",
+      "label": "Execute + verify",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "propose",
+    "chain",
+    "dryrun",
+    "card",
+    "claim",
+    "patch",
+    "verify",
+    "verdict"
+  ],
+  "nodes": [
+    {
+      "id": "card",
+      "lane": "slack",
+      "col": 3,
+      "type": "frontend",
+      "label": "Approval card",
+      "sublabel": "Approve / Reject",
+      "tag": "expires in 15 min"
+    },
+    {
+      "id": "verdict",
+      "lane": "slack",
+      "col": 5,
+      "type": "frontend",
+      "label": "Verdict in thread",
+      "sublabel": "recovered \u00b7 unchanged \u00b7 worse"
+    },
+    {
+      "id": "propose",
+      "lane": "agent",
+      "col": 0,
+      "type": "backend",
+      "label": "Proposal",
+      "sublabel": "one whitelisted action"
+    },
+    {
+      "id": "chain",
+      "lane": "agent",
+      "col": 1,
+      "type": "security",
+      "label": "Gate chain",
+      "sublabel": "grounded \u00b7 no-op \u00b7 duplicate"
+    },
+    {
+      "id": "claim",
+      "lane": "agent",
+      "col": 4,
+      "type": "security",
+      "label": "Atomic claim",
+      "sublabel": "one execution, any pod"
+    },
+    {
+      "id": "verify",
+      "lane": "agent",
+      "col": 5,
+      "type": "database",
+      "label": "Verification",
+      "sublabel": "durable check \u00b7 ~5 min"
+    },
+    {
+      "id": "dryrun",
+      "lane": "mcp",
+      "col": 2,
+      "type": "security",
+      "label": "Server dry-run",
+      "sublabel": "namespace allowlist \u00b7 bounds"
+    },
+    {
+      "id": "patch",
+      "lane": "mcp",
+      "col": 5,
+      "type": "cloud",
+      "label": "Live change",
+      "sublabel": "restart \u00b7 image \u00b7 scale \u00b7 undo"
+    },
+    {
+      "id": "pr",
+      "lane": "worker",
+      "col": 5,
+      "type": "external",
+      "label": "GitOps pull request",
+      "sublabel": "merge applies \u00b7 drift \u2192 flux_reconcile"
+    },
+    {
+      "id": "nocard",
+      "lane": "stop",
+      "col": 2,
+      "type": "security",
+      "label": "No card",
+      "sublabel": "reason logged"
+    },
+    {
+      "id": "closed",
+      "lane": "stop",
+      "col": 4,
+      "type": "security",
+      "label": "Closed",
+      "sublabel": "rejected or expired"
+    }
+  ],
+  "edges": [
+    {
+      "id": "r-chain",
+      "from": "propose",
+      "to": "chain",
+      "variant": "emphasis"
+    },
+    {
+      "id": "r-reask",
+      "from": "chain",
+      "to": "propose",
+      "label": "refused: one re-ask",
+      "role": "return",
+      "variant": "security"
+    },
+    {
+      "id": "r-dry",
+      "from": "chain",
+      "to": "dryrun",
+      "label": "passes",
+      "variant": "emphasis"
+    },
+    {
+      "id": "r-refused",
+      "from": "chain",
+      "to": "nocard",
+      "label": "refused again",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "id": "r-dryfail",
+      "from": "dryrun",
+      "to": "nocard",
+      "label": "fails",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "id": "r-card",
+      "from": "dryrun",
+      "to": "card",
+      "label": "ok",
+      "variant": "emphasis"
+    },
+    {
+      "id": "r-approve",
+      "from": "card",
+      "to": "claim",
+      "label": "Approve",
+      "variant": "emphasis"
+    },
+    {
+      "id": "r-reject",
+      "from": "card",
+      "to": "closed",
+      "label": "Reject \u00b7 expiry",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "id": "r-patch",
+      "from": "claim",
+      "to": "patch",
+      "label": "live patch",
+      "variant": "emphasis"
+    },
+    {
+      "id": "r-pr",
+      "from": "claim",
+      "to": "pr",
+      "label": "Flux-managed",
+      "role": "branch"
+    },
+    {
+      "id": "r-verify",
+      "from": "patch",
+      "to": "verify",
+      "label": "schedule",
+      "variant": "emphasis"
+    },
+    {
+      "id": "r-verdict",
+      "from": "verify",
+      "to": "verdict",
+      "label": "post + remember",
+      "variant": "emphasis"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "Never without a click",
+      "items": [
+        "The investigating model has no write tools",
+        "Only SLACK_APPROVER_USERS can approve",
+        "A double click or two pods cannot execute twice"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "GitOps workloads",
+      "items": [
+        "Image and replica changes become a pull request",
+        "A rollback becomes a revert PR of the bad commit",
+        "Drift between Git and the cluster: flux_reconcile instead"
+      ]
+    }
+  ]
+}

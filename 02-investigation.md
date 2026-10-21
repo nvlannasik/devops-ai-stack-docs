@@ -4,19 +4,20 @@
 
 ## The pipeline
 
-```
-Alertmanager webhook / Slack mention (allowlisted users)
-   │
-   ├─ 1. Group     one webhook = one Alertmanager group = ONE investigation
-   ├─ 2. Dedup     fingerprint, 12h claim (atomic in Redis across pods)
-   ├─ 3. Correlate is this a neighbour of an open incident? → join its thread
-   ├─ 4. Context   change timeline (24h) + incident memory recall
-   ├─ 5. Loop      LLM ⇄ MCP tools, parallel calls, per-symptom playbooks
-   ├─ 6. Gates     deterministic checks on the answer before it leaves
-   ├─ 7. Post      RCA card in Slack; Low confidence → page on-call
-   ├─ 8. Store     incident row in Postgres; full trace in agent_events
-   └─ 9. Propose   at most one fix → see "Remediation and Safety Guardrails"
-```
+![How an investigation works](diagrams/investigation/investigation.png)
+
+*Diagram made with archify. Interactive version: `diagrams/investigation/investigation.html`; vector: `diagrams/investigation/investigation.svg`.*
+
+In short:
+1. **Group** — one webhook is one Alertmanager group, and one group is ONE investigation.
+2. **Dedup** — the fingerprint is claimed for 12h (atomically in Redis across pods).
+3. **Correlate** — a neighbour of an open incident joins that incident's thread.
+4. **Context** — the change timeline (24h) and incident memory recall.
+5. **Loop** — LLM ⇄ MCP tools, with parallel calls and per-symptom playbooks.
+6. **Gates** — deterministic checks on the answer before it leaves.
+7. **Post** — the RCA card in Slack; Low confidence pages on-call.
+8. **Store** — the incident row in Postgres and the full trace in `agent_events`.
+9. **Propose** — at most one fix; see *Remediation and Safety Guardrails*.
 
 ## 1–3. Entry, grouping, dedup and correlation
 

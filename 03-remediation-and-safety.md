@@ -8,26 +8,9 @@
 
 ## Layered defences
 
-```
- Investigation loop ── read-only tools only (write tools filtered out of the tool list,
- │                     and refused again if the model calls one anyway)
- ▼
- Proposal (separate LLM call) ── must name ONE whitelisted action, parsed and validated
- ▼
- Gate chain ── deterministic refusals (see below); one re-ask with the refusal text
- ▼
- MCP server ── namespace allowlist, GitOps verdict, scale bounds, live provenance checks
- ▼
- Mandatory server-side dry-run ── bad target / blocked namespace ⇒ no card at all
- ▼
- Approval card in Slack ── only SLACK_APPROVER_USERS; expires after 15 minutes
- ▼
- Atomic claim ── a double click or two pods can never execute twice
- ▼
- Execute ── result and full audit trail in the `remediations` table
- ▼
- Verification ── durable check ~5 min later: recovered / unchanged / worse / inconclusive
-```
+![Guarded remediation flow](diagrams/remediation/remediation.png)
+
+*Diagram made with archify. Interactive version: `diagrams/remediation/remediation.html`; vector: `diagrams/remediation/remediation.svg`.*
 
 ## Whitelisted actions
 

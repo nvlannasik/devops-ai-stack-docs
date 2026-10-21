@@ -32,23 +32,9 @@ It can also **propose one fix** for the problem it found. Nothing is ever change
 
 ## How it works (one picture)
 
-```
- Alertmanager ──webhook──┐                       ┌──► Slack thread: RCA card, follow-ups,
- Slack @mention ─────────┤                       │    approval card, verdict
-                         ▼                       │
-                 ┌───────────────┐   MCP    ┌──────────────────┐
-                 │ devops-ai-    │─────────►│ devops-mcp-server│──► Kubernetes API
-                 │ agent         │◄─────────│ (55 read + 8     │──► Prometheus / Loki
-                 │ (Slack bot +  │          │  write tools)    │──► Alertmanager / Tracing
-                 │  agentic loop)│          └──────────────────┘
-                 └──────┬────────┘
-          SQS (FIFO)    │   Postgres (incident memory) · Redis (conversation memory)
-                        ▼
-                 ┌───────────────┐
-                 │ llm-worker    │──► private LLM (inside the private network)
-                 │ (private net) │──► GitHub Enterprise (GitOps PRs)
-                 └───────────────┘
-```
+![DevOps AI Agent Stack architecture](diagrams/architecture/architecture.png)
+
+*Diagram made with archify. Interactive version: `diagrams/architecture/architecture.html`; vector: `diagrams/architecture/architecture.svg`.*
 
 1. An alert (or a mention) arrives. The agent deduplicates it, correlates it with open incidents, recalls past incidents and builds the change timeline.
 2. An LLM drives an **investigation loop**: it calls read-only tools on the MCP server (Kubernetes, Prometheus, Loki, Alertmanager, tracing), reads the results, and calls more until it can explain the incident.

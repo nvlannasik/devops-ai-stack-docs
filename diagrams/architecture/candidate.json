@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "DevOps AI Agent Stack — Architecture",
+    "locale": "en",
+    "output": "diagrams/architecture/architecture.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "slack", "type": "external", "label": "Slack", "sublabel": "on-call channel", "pos": [30, 200], "size": [120, 62] },
+    { "id": "agent", "type": "backend", "label": "devops-ai-agent", "sublabel": "Slack bot + agentic loop", "pos": [260, 200], "size": [160, 64], "tag": "orchestrator" },
+    { "id": "postgres", "type": "database", "label": "PostgreSQL", "sublabel": "incident memory + traces", "pos": [170, 40], "size": [150, 62] },
+    { "id": "redis", "type": "database", "label": "Redis", "sublabel": "threads + dedup", "pos": [350, 40], "size": [130, 62] },
+    { "id": "mcp", "type": "backend", "label": "devops-mcp-server", "sublabel": "55 read + 8 write tools", "pos": [620, 200], "size": [160, 64], "tag": "tools" },
+    { "id": "k8s", "type": "cloud", "label": "Kubernetes API", "sublabel": "ServiceAccount + RBAC", "pos": [930, 200], "size": [160, 62] },
+    { "id": "obs", "type": "database", "label": "Observability", "sublabel": "Prometheus · Loki · Alertmanager · Jaeger", "pos": [600, 380], "size": [200, 64] },
+    { "id": "hosted", "type": "external", "label": "Hosted LLM APIs", "sublabel": "OpenAI-compatible / Claude", "pos": [60, 580], "size": [170, 62] },
+    { "id": "sqs", "type": "messagebus", "label": "AWS SQS", "sublabel": "FIFO request / response", "pos": [320, 580], "size": [160, 62] },
+    { "id": "worker", "type": "backend", "label": "llm-worker", "sublabel": "SQS consumer", "pos": [640, 580], "size": [140, 62], "tag": "outbound-only" },
+    { "id": "privllm", "type": "external", "label": "Private LLM", "sublabel": "OpenAI / Anthropic API", "pos": [940, 500], "size": [150, 62] },
+    { "id": "ghe", "type": "external", "label": "GitHub Enterprise", "sublabel": "GitOps repo", "pos": [940, 660], "size": [150, 62] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Kubernetes cluster · namespace devops-tools + monitoring", "wraps": ["agent", "postgres", "redis", "mcp", "k8s", "obs"], "pad": 20 },
+    { "kind": "security-group", "label": "private network (outbound only)", "wraps": ["worker", "privllm", "ghe"], "pad": 16 }
+  ],
+  "connections": [
+    { "id": "slack-agent", "from": "slack", "to": "agent", "label": "Socket Mode", "variant": "emphasis" },
+    { "id": "agent-mcp", "from": "agent", "to": "mcp", "label": "MCP · bearer token", "variant": "emphasis" },
+    { "id": "mcp-k8s", "from": "mcp", "to": "k8s", "label": "read · dry-run · patch", "variant": "security" },
+    { "id": "mcp-obs", "from": "mcp", "to": "obs", "label": "PromQL · LogQL · alerts" },
+    { "id": "webhook", "from": "obs", "to": "agent", "label": "POST /alert", "variant": "emphasis" },
+    { "id": "agent-pg", "from": "agent", "to": "postgres", "label": "SQL" },
+    { "id": "agent-redis", "from": "agent", "to": "redis", "label": "cache" },
+    { "id": "agent-hosted", "from": "agent", "to": "hosted", "label": "HTTPS (router)", "variant": "dashed" },
+    { "id": "agent-sqs", "from": "agent", "to": "sqs", "label": "LLM + GitOps requests", "variant": "dashed" },
+    { "id": "sqs-worker", "from": "worker", "to": "sqs", "label": "long-poll", "variant": "dashed" },
+    { "id": "worker-llm", "from": "worker", "to": "privllm", "label": "chat API" },
+    { "id": "worker-ghe", "from": "worker", "to": "ghe", "label": "pull requests", "variant": "security" }
+  ],
+  "cards": [
+    { "dot": "rose", "title": "Safety boundaries", "items": ["The investigation loop sees read-only tools only", "Writes need a dry-run and a human Approve in Slack", "GitHub credentials live only in the llm-worker"] },
+    { "dot": "cyan", "title": "Network", "items": ["Slack, SQS and LLM APIs are reached outbound only", "The private network needs outbound SQS access only", "In dev the llm-worker runs in the same cluster"] },
+    { "dot": "emerald", "title": "Memory", "items": ["Postgres: RCAs, confirmed causes, remediations, run traces, LLM usage", "Redis: conversation history (24h) and alert dedup (12h)"] }
+  ]
+}

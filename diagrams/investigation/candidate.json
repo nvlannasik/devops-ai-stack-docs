@@ -1,0 +1,268 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "How an Investigation Works",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": "diagrams/investigation/investigation.html"
+  },
+  "lanes": [
+    {
+      "id": "slack",
+      "label": "Alertmanager & Slack"
+    },
+    {
+      "id": "intake",
+      "label": "Intake"
+    },
+    {
+      "id": "loop",
+      "label": "Investigation loop"
+    },
+    {
+      "id": "mcp",
+      "label": "devops-mcp-server"
+    },
+    {
+      "id": "after",
+      "label": "Record & act"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p-intake",
+      "label": "Before the first LLM call",
+      "fromCol": 0,
+      "toCol": 2
+    },
+    {
+      "id": "p-loop",
+      "label": "Agentic loop \u00b7 \u2264 10 turns \u00b7 300 s",
+      "fromCol": 3,
+      "toCol": 4,
+      "variant": "emphasis"
+    },
+    {
+      "id": "p-out",
+      "label": "Answer",
+      "fromCol": 5,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "alert",
+    "dedup",
+    "correlate",
+    "context",
+    "llm",
+    "gates",
+    "rca"
+  ],
+  "nodes": [
+    {
+      "id": "alert",
+      "lane": "slack",
+      "col": 0,
+      "type": "external",
+      "label": "Alert webhook",
+      "sublabel": "POST /alert \u00b7 bearer"
+    },
+    {
+      "id": "related",
+      "lane": "slack",
+      "col": 1,
+      "type": "frontend",
+      "label": "Related alert",
+      "sublabel": "joins the open thread"
+    },
+    {
+      "id": "mention",
+      "lane": "slack",
+      "col": 3,
+      "type": "external",
+      "label": "@mention",
+      "sublabel": "allowlisted users"
+    },
+    {
+      "id": "rca",
+      "lane": "slack",
+      "col": 5,
+      "type": "frontend",
+      "label": "RCA card",
+      "sublabel": "Low confidence \u2192 on-call"
+    },
+    {
+      "id": "dedup",
+      "lane": "intake",
+      "col": 0,
+      "type": "backend",
+      "label": "Group + dedup",
+      "sublabel": "one group = one run \u00b7 12h"
+    },
+    {
+      "id": "correlate",
+      "lane": "intake",
+      "col": 1,
+      "type": "backend",
+      "label": "Correlate",
+      "sublabel": "one call-graph edge \u00b7 30 min"
+    },
+    {
+      "id": "context",
+      "lane": "intake",
+      "col": 2,
+      "type": "database",
+      "label": "Timeline + recall",
+      "sublabel": "24h changes \u00b7 past incidents"
+    },
+    {
+      "id": "llm",
+      "lane": "loop",
+      "col": 3,
+      "type": "backend",
+      "label": "LLM turn",
+      "sublabel": "playbooks \u00b7 masked ids",
+      "tag": "light / heavy route"
+    },
+    {
+      "id": "tools",
+      "lane": "mcp",
+      "col": 3,
+      "type": "cloud",
+      "label": "MCP tools",
+      "sublabel": "read-only \u00b7 parallel \u00b7 framed as data"
+    },
+    {
+      "id": "gates",
+      "lane": "loop",
+      "col": 4,
+      "type": "security",
+      "label": "Answer gates",
+      "sublabel": "evidence \u00b7 logs \u00b7 format",
+      "tag": "can hold for one more round"
+    },
+    {
+      "id": "proposal",
+      "lane": "after",
+      "col": 5,
+      "type": "security",
+      "label": "Propose \u2264 1 fix",
+      "sublabel": "\u2192 remediation flow"
+    },
+    {
+      "id": "store",
+      "lane": "after",
+      "col": 4,
+      "type": "database",
+      "label": "Store incident",
+      "sublabel": "RCA + full run trace"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-alert",
+      "from": "alert",
+      "to": "dedup",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-dedup",
+      "from": "dedup",
+      "to": "correlate",
+      "label": "new",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-related",
+      "from": "correlate",
+      "to": "related",
+      "label": "neighbour",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "id": "e-context",
+      "from": "correlate",
+      "to": "context",
+      "label": "own incident",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-start",
+      "from": "context",
+      "to": "llm",
+      "label": "as data",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-mention",
+      "from": "mention",
+      "to": "llm",
+      "label": "2 tool rounds",
+      "role": "branch",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "route": "drop"
+    },
+    {
+      "id": "e-call",
+      "from": "llm",
+      "to": "tools",
+      "label": "tool calls"
+    },
+    {
+      "id": "e-result",
+      "from": "tools",
+      "to": "llm",
+      "role": "return",
+      "variant": "dashed",
+      "label": "results"
+    },
+    {
+      "id": "e-answer",
+      "from": "llm",
+      "to": "gates",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-post",
+      "from": "gates",
+      "to": "rca",
+      "label": "passes",
+      "variant": "emphasis"
+    },
+    {
+      "id": "e-store",
+      "from": "gates",
+      "to": "store",
+      "label": "store",
+      "role": "branch"
+    },
+    {
+      "id": "e-propose",
+      "from": "store",
+      "to": "proposal",
+      "role": "branch",
+      "variant": "security"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Context first",
+      "items": [
+        "The change timeline and three memory tiers are built before the model runs",
+        "Human-confirmed causes outrank the agent's own past RCAs"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Gates in code",
+      "items": [
+        "No evidence, log gap, image gap, RCA completeness: one more round",
+        "Confidence cap, scrubbers and grounding warnings on what leaves"
+      ]
+    }
+  ]
+}

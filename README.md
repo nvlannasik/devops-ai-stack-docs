@@ -21,6 +21,32 @@ Seven pages, meant as one parent page and six children, in this order:
 
 **Alternatively**, insert a *Markdown* macro (`/markdown`) and paste the file into it. This keeps the source as-is.
 
-The diagrams are plain-text code blocks, so they render the same everywhere. Each page's top line names its audience.
+Each page's top line names its audience.
+
+## Diagrams
+
+Three diagrams, made with [archify](https://github.com/tt-a1i/archify) (v3.2.0), live under `diagrams/<name>/`:
+
+| Diagram | Used on | Files |
+|---|---|---|
+| Architecture | Overview, Architecture | `architecture.png` · `.svg` · `.html` |
+| How an investigation works | How an Investigation Works | `investigation.png` · `.svg` · `.html` |
+| Guarded remediation | Remediation and Safety Guardrails | `remediation.png` · `.svg` · `.html` |
+
+**Getting them into Confluence.** The pages reference the PNGs with relative paths, which Confluence does not follow. On each page:
+1. Upload the PNG as an attachment, or drag it into the editor.
+2. Put it where the `![…](diagrams/…png)` line was.
+
+The `.svg` is the vector version, light theme. The `.html` is the interactive original: zoom, focus and dark mode. Link to it from Confluence if you host it somewhere.
+
+**Changing a diagram.** Edit its `candidate.json`, then re-render and re-check it. Run from this folder, with the archify skill installed in the workspace:
+
+```bash
+ARCHIFY_CHROME_NO_SANDBOX=1 ARCHIFY_CHROME=<chrome-or-chromium> \
+  node ../.claude/skills/archify/bin/archify.mjs finalize <architecture|workflow> \
+  diagrams/<name>/candidate.json diagrams/<name>/<name>.html --quality showcase --json
+```
+
+Then export PNG and light SVG from the HTML's **Export** menu. The receipts that `finalize` writes are git-ignored.
 
 Facts are as of 2026-10-21: agent `f423d11`, mcp-server `9989bcb`, chart `0.7.0`.

@@ -4,22 +4,15 @@
 
 ## How it is deployed
 
-```
- code repos (agent, mcp-server, worker, sample-apps)
-     │ push to main → GitHub Actions "Build & Push" → container images (:latest;
-     │   agent, mcp-server and worker are amd64+arm64, the sample apps arm64)
-     ▼
- devops-ai-helm-charts  ── tag v* → chart published to GHCR (OCI)
-     ▼
- gitops-devops-ai-manifest  (Flux + Kustomize)
-     clusters/{dev,stg,prd}/  → Flux bootstrap per cluster
-     apps/base/                → applications (devops-ai-stack, sample apps, loadgen)
-                                 and systems (postgres, prometheus, alertmanager, loki,
-                                 fluent-bit, grafana, jaeger, cert-manager, longhorn, …)
-     apps/dev/                 → the dev overlay (the only overlay written so far)
-     ▼
- Flux reconciles → HelmRelease devops-ai-stack (chart 0.7.0) in namespace devops-tools
-```
+1. **Code repos** (agent, mcp-server, worker, sample-apps): a push to `main` runs GitHub Actions *Build & Push*.
+   - It publishes `:latest` images.
+   - The agent, mcp-server and worker images are amd64+arm64; the sample apps are arm64.
+2. **`devops-ai-helm-charts`**: a `v*` tag publishes the umbrella chart to GHCR (OCI).
+3. **`gitops-devops-ai-manifest`** (Flux + Kustomize):
+   - `clusters/{dev,stg,prd}/` — the Flux bootstrap for each cluster;
+   - `apps/base/` — applications (devops-ai-stack, the sample apps, loadgen) and systems (postgres, prometheus, alertmanager, loki, fluent-bit, grafana, jaeger, cert-manager, longhorn, …);
+   - `apps/dev/` — the dev overlay, the only overlay written so far.
+4. **Flux** reconciles HelmRelease `devops-ai-stack` (chart 0.7.0) into namespace `devops-tools`.
 
 - **GitOps is the source of truth.** A change to what runs in a cluster is a commit to `gitops-devops-ai-manifest`.
 - **Rolling out new code.** Images are published as `:latest`. After a push to `main` and a finished image build, roll the Deployment so it pulls the new image:

@@ -38,26 +38,9 @@ It drains gracefully on SIGTERM, sends poison messages to a DLQ, and processes r
 
 ## Deployment topology (today)
 
-```
- ┌───────────────────────────── dev cluster (k3s) ─────────────────────────────┐
- │ namespace devops-tools                                                      │
- │   devops-ai-agent      :3000 /alert /health   :3001 dashboard (port-forward)│
- │   devops-mcp-server    :3000 /mcp  (ServiceAccount + ClusterRole)           │
- │   devops-llm-worker    (SQS poller)                                         │
- │ namespace redis              → Redis (conversation memory, dedup)           │
- │ namespace postgresql         → Postgres (incident memory, traces, usage)    │
- │ namespace monitoring         → Prometheus, Alertmanager, Loki (fluent-bit), │
- │                                Grafana, Jaeger                              │
- │ namespace sample-apps        → storefront, checkout-gateway, orders-api,    │
- │                                settlement-worker (the incident generators)  │
- └─────────────────────────────────────────────────────────────────────────────┘
-        │ outbound only                         │ outbound only
-        ▼                                       ▼
-   Slack (Socket Mode)                     AWS SQS (FIFO queues)
-   Hosted LLM APIs (router backends)       ▲
-                                           │ outbound only
-                              llm-worker in the private network → private LLM, GitHub Enterprise
-```
+![DevOps AI Agent Stack architecture](diagrams/architecture/architecture.png)
+
+*Diagram made with archify. Interactive version: `diagrams/architecture/architecture.html`; vector: `diagrams/architecture/architecture.svg`.*
 
 Everything is deployed by **Flux** from `gitops-devops-ai-manifest`. The three services ship as **one Helm release** (`devops-ai-stack` umbrella chart).
 
