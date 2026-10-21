@@ -3,47 +3,77 @@
 > ### Your first responder never sleeps.
 > An AI on-call teammate that lives in Slack. It investigates every alert the way your best SRE would, explains the root cause with evidence, and proposes a fix that **you** approve.
 
-**Status:** running in the `dev` cluster (namespace `devops-tools`) · **Audience:** everyone — on-call, engineers, leads.
+**Status:** proof of concept, running in the `dev` cluster (namespace `devops-tools`) · **Author:** Ahmad Naoval Annasik, DevOps Engineer · **Audience:** everyone — on-call, engineers, leads.
 
 ---
 
 ## Background
 
-Our services run on **Kubernetes** and are deployed declaratively with **Flux GitOps**. Health is watched by **Prometheus** (metrics), **Loki** (logs), **Jaeger** (traces) and **Alertmanager**, which turns a bad signal into an alert in **Slack**.
+### Observability: designed in, or bolted on?
 
-From there, an incident belongs to whoever is on call. The tooling to *detect* a problem is mature. What happens next is still almost entirely manual: one engineer, at any hour, turns an alert into an understanding of what broke and why, using five different tools.
+Every phase of the software development life cycle feeds the next: planning, requirements, design, development, testing, deployment, maintenance. Observability *should* start at design. In practice it is usually added after deployment, once something has already gone wrong. It turns into tech debt for four familiar reasons:
+
+| Reason | What it sounds like |
+|---|---|
+| **No visible feature value** | It does not show up in a product demo. |
+| **Deadline pressure** | Ship first, monitor later. |
+| **Works fine until it doesn't** | The need only appears during an incident. |
+| **No clear owner** | Dev thinks it is Ops. Ops thinks it is Dev. |
+
+### What observability gives us
+
+**Observability** is the ability to understand what is happening inside a system by analysing the data it produces. Monitoring tells us *that* something is wrong; observability helps us understand *why* it happened and *where* it started. In a distributed environment like Kubernetes, it lets engineers ask questions of the system instead of guessing.
+
+It rests on four pillars:
+
+| Pillar | What it is | What it tells us | In our stack |
+|---|---|---|---|
+| **Metrics** | Numeric time series (a value, a timestamp, labels), cheap to store and fast to query | *Something is wrong*: CPU, memory, latency, error rate, storage | Prometheus |
+| **Logs** | Timestamped records of events, with severity, source and message | *What happened*: the detailed story behind an issue | Loki (shipped by Fluent Bit) |
+| **Traces** | The end-to-end journey of one request, made of spans with durations | *Where it happened*: where the time went and where it failed | Jaeger / Tempo |
+| **Alerts** | Rules evaluated over metrics or logs, with a severity and a destination | *Someone needs to act*: the bridge from detection to response | Alertmanager → Slack |
+
+Our services run on **Kubernetes**, are deployed with **Flux GitOps**, and have all four pillars in place.
+
+> **We have all the data. But who connects the dots?**
+> When an alert fires, an engineer still opens every panel, matches the timestamps, and pieces the story together by hand.
 
 ---
 
 ## The problem
 
-*A composite of the nights before the agent existed. The names are made up; the shape will be familiar.*
+### The common issue-handling flow
 
-**01:44.** Dimas's phone buzzes on the nightstand. `UnexpectedErrorLog`, three alerts at once, on `checkout-gateway` and `storefront`. That is checkout, the path customers are paying through right now.
+![The common issue-handling flow](diagrams/issue-flow/issue-flow.png)
 
-**01:47.** Laptop open, VPN connecting. Three alerts mean three notifications. Is it three problems or one? He starts with the dashboard, then remembers that this service's error panel lives on a different one.
+*Diagram made with archify. Interactive version: `diagrams/issue-flow/issue-flow.html`.*
 
-**01:55.** `kubectl get pods` in one namespace, then the other. Some pods are restarting. `kubectl describe`, scroll, `kubectl logs`, scroll again. The error says something about an upstream, but which one?
+### A night on call
 
-**02:05.** *What changed?* He scrolls the deploy channel, then `git log` in the GitOps repo, then the HelmRelease history. Something was rolled out yesterday afternoon. Maybe that is it, maybe it is not.
+> *"Incidents never happen at your desk. They happen at dinner, in traffic, or in bed."*
 
-**02:12.** He asks in the team channel: *"has anyone seen this before?"* The one person who fixed it last time is asleep, and what they learned lives in their head, not anywhere he can search.
+*An illustrative scenario, but the shape will be familiar to anyone who has carried the pager.*
 
-**02:20.** Under pressure, he restarts the deployment. It changes nothing: the kubelet had already restarted those pods again and again. Now there is also an unreviewed change at 2 a.m. that nobody will remember making.
+| Time | What happens |
+|---|---|
+| **03:13** | The alert fires: *"High error rate on payment-service"*. |
+| 03:20 | The on-call engineer is at a laptop and opens Grafana. It starts from the dashboard. |
+| 03:35 | Metrics, then logs, then Kubernetes events, matching timestamps by hand across panels. |
+| **03:58** | Root cause found: a pod was OOMKilled after a config change. |
+| 04:05 | Fix deployed; the error rate is back to normal. |
 
-**02:40.** He finally finds it: one service is answering in a format the other no longer understands. He fixes it, watches the graphs settle, and goes back to bed at 03:10.
-
-**The next morning,** nothing is written down. Three months later the same thing happens, to someone else, and they start again from zero.
+**Investigation: 38 minutes. Fix: 7 minutes.** More than 80% of the incident was spent *finding* the problem, not fixing it. The next morning nothing is written down, and the next time it happens someone else starts from zero.
 
 ### Why it hurts
 
-| The pain | Where the time went |
+| Challenge | What it costs |
 |---|---|
-| **Gathering, not thinking** | Most of the hour went to collecting pods, events, logs, metrics and recent changes, by hand, one tool at a time |
-| **Noise** | Three alerts looked like three problems, and nothing tied them to one cause |
-| **Knowledge in heads** | "Has this happened before?" depended on who was awake |
-| **Risky fixes** | A change made under pressure: unreviewed, unaudited, and in this case useless |
-| **No memory** | The lesson was lost the moment the incident closed |
+| **Manual correlation** | Metrics, logs, traces and Kubernetes events are matched one by one, even when they sit on one dashboard |
+| **High MTTR** | Most of the time to resolve goes to investigation, not to the fix |
+| **Knowledge dependency** | How fast an issue is analysed depends on who knows the system — hard for new joiners, harder at 3 a.m. |
+| **Alert fatigue** | A high alert volume buries the important ones and slows the response |
+| **Risky fixes** | Changes made under pressure are unreviewed and unaudited |
+| **No memory** | The lesson is lost the moment the incident closes |
 
 None of this is about skill. It is about doing slow, repetitive work at the worst possible hour.
 
@@ -59,15 +89,55 @@ None of this is about skill. It is about doing slow, repetitive work at the wors
 
 ---
 
+## Why not an existing AI agent?
+
+### What an AI agent is
+
+An **AI agent** is a system that uses a Large Language Model (LLM) to reach a goal on its own. A chatbot only answers from what it already knows. An agent can **call tools, read the results and decide what to do next**, step by step, until the goal is reached or a human needs to decide.
+
+| Step | What the agent does |
+|---|---|
+| **Think** | The LLM understands the goal, breaks it into steps, and picks the next tool |
+| **Act** | It calls tools (APIs, queries, commands) to get real data from real systems |
+| **Observe** | It reads the result, checks whether the goal is reached, and loops if it is not |
+
+Around that loop sit **memory** (the conversation and the findings so far), **instructions** (role, rules, guardrails) and a **tool interface** (function calling or MCP). Risky actions wait for human approval.
+
+### Why the existing ones did not fit
+
+DevOps-specific agents exist, HolmesGPT among them, and they are powerful. They were hard to adopt in our environment:
+
+| Challenge | Why it blocked adoption |
+|---|---|
+| **Complex setup** | CLI-based, installed and configured on each engineer's own device |
+| **Security policy** | Did not comply with our corporate security policy |
+| **Private LLM** | Could not connect to our private corporate LLM |
+| **Our workflow** | Did not fit the observability flow we already run |
+
+> **What we need:** an AI agent that runs **centrally**, follows **our security policy**, uses **our private LLM**, and works inside **our existing observability flow**.
+
+---
+
 ## The solution
 
-The **DevOps AI Agent Stack** is an AI teammate that sits in the on-call channel. It investigates every alert the way an experienced SRE would, writes it up as a structured Root Cause Analysis in the alert's own thread, and **never changes anything without a human's approval**.
+The **DevOps AI Agent Stack** is that agent: an AI teammate that sits in the on-call channel. It investigates every alert the way an experienced SRE would, writes it up as a structured Root Cause Analysis in the alert's own thread, and **never changes anything without a human's approval**. It is an AI-powered assistant inside the flow we already have, not a replacement for it.
 
 | 🔎 **Investigates** | 🧠 **Remembers** | 🛡️ **Fixes safely** | 🧭 **Onboards** |
 |---|---|---|---|
 | Minutes from alert to a structured RCA, in the alert's own thread | Every incident, every confirmed cause, every fix that did or did not work | One fix at a time, dry-run first, executed only after a human clicks *Approve* | "Explain this cluster" answered from the live cluster, not from a stale wiki |
 
-### Proof: the same kind of night, with the agent
+### Goals
+
+| # | Goal | What it means |
+|---|---|---|
+| 01 | **Faster time to root cause** | Every alert becomes an evidence-based RCA in Slack within minutes, not after manual digging in Grafana |
+| 02 | **Automated correlation** | Metrics, logs, traces and cluster state are connected automatically — the step engineers still did by hand |
+| 03 | **Fit the existing workflow** | Works inside Slack and our current observability stack |
+| 04 | **Safe for remediation** | Every change is dry-run, human-approved, audited and verified |
+| 05 | **Built for our environment** | Runs in our infrastructure, follows our security policy, and can use our private LLM |
+| 06 | **Learn from every incident** | Past RCAs and confirmed fixes are reused, so recurring issues are resolved faster |
+
+### Proof: a real incident, with the agent
 
 *This one is real: the `dev` cluster on 2026-10-21, as recorded in the agent's logs.*
 
@@ -79,19 +149,30 @@ The **DevOps AI Agent Stack** is an AI teammate that sits in the on-call channel
 | 01:46:06 | The first sub-investigation fires **9 tool calls at once**: Alertmanager, two workload lookups, error-rate PromQL, endpoints, error logs, pods, events, services. |
 | 01:47:46 | Both sub-investigations report back, and the lead combines their verdicts. |
 | **01:49:05** | **The RCA card is posted in Slack, 5 minutes after the alert**, with the evidence behind every claim. |
-| 01:49:11 | It considers a fix. **A rolling restart is refused**: the kubelet had already restarted those pods 9 times, so a restart would change nothing. This is the 02:20 mistake from the story above, caught by code. |
+| 01:49:11 | It considers a fix. **A rolling restart is refused**: the kubelet had already restarted those pods 9 times, so a restart would change nothing. |
 | 01:49:16 | **An image change is refused too**: no evidence in the thread showed that the proposed image exists. Nothing was guessed and nothing was touched. |
 | 01:49:17 | The alert had resolved while the RCA was being written, so the incident is **closed automatically**. |
 | 01:52:30 | An engineer asks in the thread, *"coba tunjukin log terakhirnya"* ("show me the latest logs"). **The answer comes back in 65 seconds**, from 3 fresh tool calls. |
+
+### Thirty days in the dev cluster
+
+![The dashboard overview after 30 days](images/dashboard-overview.png)
+
+*The agent's own dashboard, 4 September – 4 October 2026, as shown at the sharing session:*
+- *157 incidents investigated, 100% resolved;*
+- *26 minutes mean time to resolve;*
+- *remediation verified as recovered in 6 of 7 cases (86%).*
+
+*Most of these incidents were faults injected on purpose into the sample apps and the benchmark, so read them as a test bed, not as production figures.*
 
 ### Before and after
 
 | | Before | With the agent |
 |---|---|---|
-| Evidence gathered | By hand, one tool at a time | Automatically, in parallel, before anyone is at a laptop |
-| Three alerts | Three problems to untangle | One thread, one investigation |
+| Evidence gathered | By hand, one panel at a time | Automatically, in parallel, before anyone is at a laptop |
+| Related alerts | Separate problems to untangle | One thread, one investigation |
 | "Seen this before?" | Ask whoever is awake | Recalled from memory, with human-confirmed causes first |
-| The restart | Made at 02:20, useless and unaudited | Refused by a gate, with the reason posted |
+| The fix | Applied by hand after the digging, unreviewed | Proposed with evidence, dry-run and approved — or refused by a gate, with the reason posted |
 | The lesson | Lost by morning | `@agent learn` stores it for next time |
 
 The fix that was **not** made matters as much as the RCA. The agent is built to say "no" when the evidence is not there.
@@ -140,6 +221,14 @@ The fix that was **not** made matters as much as the RCA. The agent is built to 
   - what the agent remembers.
 - **Every run recorded and replayable.** A change to the agent is tested against real past incidents before it ships.
 
+### ▶️ Try it: three scenarios
+
+| Scenario | What you do | What the agent does |
+|---|---|---|
+| **Ask, investigate, follow up** | *"Check the logs of the storefront service"*, then *"Why is it failing?"* | Reads logs, metrics and pod status, then answers the follow-up in the same thread |
+| **Guarded remediation** | *"List the deployments in namespace sample-apps"*, pick one, then *"Restart it"* | Dry-runs the restart first, then posts an approval card. You approve with one tap on your phone, and it verifies the result. |
+| **Fix the GitOps way** | *"Scale storefront to 3 replicas"* | Sees that the workload is Flux-managed, so it does not touch the cluster directly. The card shows the Git diff; approving opens a PR, and Flux rolls it out after the merge. |
+
 ---
 
 ## Safe by design
@@ -149,6 +238,25 @@ The fix that was **not** made matters as much as the RCA. The agent is built to 
 3. **A human decides.** Every change needs an approver's click in Slack. Cards expire after 15 minutes, and a double click can never run a change twice.
 4. **Your data stays yours.** IPs, hostnames, ARNs and emails are masked before any LLM sees a request. Secrets are never read. GitHub credentials never leave the private network.
 5. **Cluster text is treated as data.** A log line that tries to give the agent instructions is framed as evidence, never obeyed.
+
+---
+
+## Using a private LLM
+
+A public LLM is not always an option. Our LLM sits **inside** the corporate network, and our services run **outside** it. How do they talk?
+
+| Option | How it works | Verdict |
+|---|---|---|
+| **Expose the MCP server** | The private side calls into the cluster | Needs an inbound path that a security review must own |
+| **Tunnelling** | A long-lived tunnel between the two networks | One more critical component to operate and audit |
+| **Direct connect** | A dedicated network link | Slow to approve, costly, and over-built for a request/response workload |
+| **Event-driven** ✅ | Both sides talk only **outbound**, to AWS SQS | **Chosen.** No inbound exception on either network. |
+
+![Reaching a private LLM, event-driven over SQS](diagrams/private-llm/private-llm.png)
+
+*Diagram made with archify. Interactive version: `diagrams/private-llm/private-llm.html`.*
+
+The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, inside the private network, long-polls it, calls the private model, and publishes the answer to a shared response queue, where the agent matches it by `requestId`. The **LLM router** can mix this private backend with hosted ones (Claude, OpenAI-compatible) and fail over between them. Credential-like identifiers are masked before any request leaves the agent.
 
 ---
 
@@ -163,6 +271,18 @@ The fix that was **not** made matters as much as the RCA. The agent is built to 
 | LLMs | **Claude**, any **OpenAI-compatible** API, or a **private LLM** inside your network over AWS SQS. A router can use several at once with automatic failover. |
 | Source control | **GitHub Enterprise**: pull requests and revert PRs for GitOps fixes |
 | Storage | **PostgreSQL** (long-term memory), **Redis** (conversation memory) |
+
+### Tech stack
+
+| Layer | Built with |
+|---|---|
+| Agent core | Node.js, TypeScript, Slack Bolt, MCP SDK |
+| AI / LLM | Anthropic SDK, OpenAI SDK, AWS SQS (private LLM path) |
+| Observability | Kubernetes, Prometheus, Alertmanager, Loki, Tempo, Jaeger |
+| Data | PostgreSQL, Redis |
+| Dashboard | React, Tailwind CSS, React Flow |
+| Delivery | Docker, GitHub Actions, Helm, Flux CD |
+| Built with | Claude Code, guided by SDLC practice and a DevOps engineer's point of view |
 
 ## How it fits together
 
@@ -189,6 +309,16 @@ The fix that was **not** made matters as much as the RCA. The agent is built to 
 | **4** | LLM backends in the dev router today (2 hosted, 2 private) |
 | **15 min** | lifetime of an approval card |
 | **~5 min** | from an approved fix to its verified verdict |
+
+## Project status and scope
+
+| | |
+|---|---|
+| **Proof of concept** | Running in the `dev` cluster; not yet deployed to any project |
+| **Personal initiative** | Built on personal time and resources |
+| **Built with Claude Code** | "Vibe coded", but guided by SDLC best practice and reviewed from a DevOps engineer's point of view |
+| **Focused scope** | Kubernetes observability at the **infrastructure** level, not yet at the application-code level |
+| **Built for real workflows** | Designed around common incident-handling use cases and the security policy we work under |
 
 ## Roadmap
 

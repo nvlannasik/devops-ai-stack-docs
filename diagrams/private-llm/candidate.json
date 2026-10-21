@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Reaching a Private LLM — Event-Driven over SQS",
+    "locale": "en",
+    "output": "diagrams/private-llm/private-llm.html",
+    "quality_profile": "showcase"
+  },
+  "components": [
+    { "id": "slack", "type": "external", "label": "Slack", "sublabel": "on-call channel", "pos": [40, 200], "size": [120, 62] },
+    { "id": "agent", "type": "backend", "label": "devops-ai-agent", "sublabel": "publishes LLM requests", "pos": [250, 200], "size": [160, 64] },
+    { "id": "mcp", "type": "backend", "label": "devops-mcp-server", "sublabel": "cluster + observability tools", "pos": [250, 40], "size": [160, 62] },
+    { "id": "sqs", "type": "messagebus", "label": "AWS SQS", "sublabel": "FIFO request + shared response", "pos": [560, 200], "size": [180, 64], "tag": "routed by requestId" },
+    { "id": "worker", "type": "backend", "label": "llm-worker", "sublabel": "polls, calls, replies", "pos": [890, 200], "size": [150, 64], "tag": "outbound only" },
+    { "id": "llm", "type": "external", "label": "Private LLM", "sublabel": "corporate model endpoint", "pos": [890, 380], "size": [150, 62] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Kubernetes cluster (cloud)", "wraps": ["agent", "mcp"], "pad": 20 },
+    { "kind": "security-group", "label": "corporate private network — no inbound", "wraps": ["worker", "llm"], "pad": 18 }
+  ],
+  "connections": [
+    { "id": "slack-agent", "from": "slack", "to": "agent", "label": "Socket Mode", "variant": "emphasis" },
+    { "id": "agent-mcp", "from": "agent", "to": "mcp", "label": "MCP tools" },
+    { "id": "agent-sqs", "from": "agent", "to": "sqs", "label": "request + response", "variant": "dashed" },
+    { "id": "worker-sqs", "from": "worker", "to": "sqs", "label": "long-poll · reply", "variant": "dashed" },
+    { "id": "worker-llm", "from": "worker", "to": "llm", "label": "chat API", "variant": "security" }
+  ],
+  "cards": [
+    { "dot": "rose", "title": "Expose the MCP server", "items": ["Needs an inbound path from the private network into the cluster", "Rejected: opens a hole a security review must own"] },
+    { "dot": "amber", "title": "Tunnel / direct connect", "items": ["A long-lived tunnel, or a dedicated network link", "Rejected: hard to approve, operate and audit"] },
+    { "dot": "emerald", "title": "Event-driven (chosen)", "items": ["Both sides only make outbound calls to SQS", "No inbound exception on either network", "Identifiers are masked before a request leaves the agent"] }
+  ]
+}

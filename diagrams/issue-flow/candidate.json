@@ -1,0 +1,163 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "The Common Issue-Handling Flow",
+    "locale": "en",
+    "quality_profile": "showcase",
+    "output": "diagrams/issue-flow/issue-flow.html",
+    "legend": {
+      "entries": {
+        "cloud": {
+          "label": "Monitoring"
+        },
+        "external": {
+          "label": "People and channels"
+        },
+        "security": {
+          "label": "Bottleneck"
+        },
+        "backend": {
+          "label": "Manual fix"
+        },
+        "database": {
+          "label": "Record"
+        }
+      }
+    }
+  },
+  "lanes": [
+    {
+      "id": "signal",
+      "label": "Signal"
+    },
+    {
+      "id": "human",
+      "label": "On-call engineer"
+    }
+  ],
+  "phases": [
+    {
+      "id": "p-detect",
+      "label": "Detect",
+      "fromCol": 0,
+      "toCol": 1
+    },
+    {
+      "id": "p-investigate",
+      "label": "Investigate \u2014 most of the time",
+      "fromCol": 2,
+      "toCol": 3,
+      "variant": "security"
+    },
+    {
+      "id": "p-resolve",
+      "label": "Resolve",
+      "fromCol": 4,
+      "toCol": 5
+    }
+  ],
+  "mainPath": [
+    "alert",
+    "notify",
+    "respond",
+    "analysis",
+    "action",
+    "report"
+  ],
+  "nodes": [
+    {
+      "id": "alert",
+      "lane": "signal",
+      "col": 0,
+      "type": "cloud",
+      "label": "Alert fires",
+      "sublabel": "rule over metrics or logs"
+    },
+    {
+      "id": "notify",
+      "lane": "signal",
+      "col": 1,
+      "type": "external",
+      "label": "Notification",
+      "sublabel": "Slack or email"
+    },
+    {
+      "id": "respond",
+      "lane": "human",
+      "col": 2,
+      "type": "external",
+      "label": "Engineer responds",
+      "sublabel": "wherever they are"
+    },
+    {
+      "id": "analysis",
+      "lane": "human",
+      "col": 3,
+      "type": "security",
+      "label": "Analysis in dashboards",
+      "sublabel": "one panel at a time",
+      "tag": "the bottleneck"
+    },
+    {
+      "id": "action",
+      "lane": "human",
+      "col": 4,
+      "type": "backend",
+      "label": "Action",
+      "sublabel": "the fix"
+    },
+    {
+      "id": "report",
+      "lane": "human",
+      "col": 5,
+      "type": "database",
+      "label": "Report",
+      "sublabel": "if anyone writes it"
+    }
+  ],
+  "edges": [
+    {
+      "id": "f1",
+      "from": "alert",
+      "to": "notify",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f2",
+      "from": "notify",
+      "to": "respond",
+      "label": "page",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f3",
+      "from": "respond",
+      "to": "analysis",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f4",
+      "from": "analysis",
+      "to": "action",
+      "label": "root cause",
+      "variant": "emphasis"
+    },
+    {
+      "id": "f5",
+      "from": "action",
+      "to": "report",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "rose",
+      "title": "The bottleneck",
+      "items": [
+        "Metrics, logs, traces and Kubernetes events are correlated by hand",
+        "Timestamps are matched across panels, one at a time"
+      ]
+    }
+  ]
+}
