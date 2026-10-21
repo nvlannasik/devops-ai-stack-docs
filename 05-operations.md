@@ -59,7 +59,6 @@ kubectl -n devops-tools logs deploy/devops-llm-worker  | grep 1792547046.423669
 | Allow remediation in a namespace | Add it to `ALLOWED_REMEDIATION_NAMESPACES` on the MCP server |
 | Turn off remediation entirely | Set `MCP_ENABLE_WRITE_TOOLS=false` on the MCP server. The write tools are then not even registered. |
 | Run the benchmark | Silence `namespace=~bench-.*` in Alertmanager first, or every injected fault also pages the production agent |
-| Check a multi-cluster bridge | `npm run mcp:probe -- <cluster> [tool] [json]` in the agent repo |
 
 ## Troubleshooting
 
@@ -79,7 +78,6 @@ kubectl -n devops-tools logs deploy/devops-llm-worker  | grep 1792547046.423669
 
 ## Known limits
 
-- **One cluster today.** Kubernetes tools act on the cluster the MCP server runs in, until multi-cluster part 2 ships.
 - **Pattern-based defences.** Masking and injection framing are pattern-based (see *Remediation and Safety Guardrails*).
 - **Correlation is replica-local while in flight.** An investigation still in flight is visible to correlation only on the replica that runs it.
 - **The RCA is a hypothesis.** Its quality depends on the LLM backend that answered; the footer always names that backend.

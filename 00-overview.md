@@ -3,7 +3,7 @@
 > ### Your first responder never sleeps.
 > An AI on-call teammate that lives in Slack. It investigates every alert the way your best SRE would, explains the root cause with evidence, and proposes a fix that **you** approve.
 
-**Status:** proof of concept, running in the `dev` cluster (namespace `devops-tools`) · **Author:** Ahmad Naoval Annasik, DevOps Engineer · **Audience:** everyone — on-call, engineers, leads.
+**Author:** Ahmad Naoval Annasik, DevOps Engineer · **Audience:** everyone — on-call, engineers, leads.
 
 ---
 
@@ -154,7 +154,7 @@ The **DevOps AI Agent Stack** is that agent: an AI teammate that sits in the on-
 | 01:49:17 | The alert had resolved while the RCA was being written, so the incident is **closed automatically**. |
 | 01:52:30 | An engineer asks in the thread, *"coba tunjukin log terakhirnya"* ("show me the latest logs"). **The answer comes back in 65 seconds**, from 3 fresh tool calls. |
 
-### Thirty days in the dev cluster
+### Thirty days on the dashboard
 
 ![The dashboard overview after 30 days](images/dashboard-overview.png)
 
@@ -266,7 +266,7 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 |---|---|
 | Chat | **Slack**: Socket Mode, no public URL needed |
 | Alerts | **Alertmanager** webhook, grouped by `alertname` + `namespace` |
-| Platform | **Kubernetes** (k3s in dev), **Flux** GitOps, **Helm** |
+| Platform | **Kubernetes**, **Flux** GitOps, **Helm** |
 | Observability | **Prometheus**, **Loki**, **Alertmanager**, **Jaeger** or **Tempo** |
 | LLMs | **Claude**, any **OpenAI-compatible** API, or a **private LLM** inside your network over AWS SQS. A router can use several at once with automatic failover. |
 | Source control | **GitHub Enterprise**: pull requests and revert PRs for GitOps fixes |
@@ -306,27 +306,17 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 | **63** | tools the agent can use (55 read-only, 8 write) |
 | **24** | built-in playbooks for specific failure modes |
 | **8** | whitelisted remediation actions, each reversible or backed up first — no generic "run anything" |
-| **4** | LLM backends in the dev router today (2 hosted, 2 private) |
 | **15 min** | lifetime of an approval card |
 | **~5 min** | from an approved fix to its verified verdict |
 
-## Project status and scope
+## Scope
 
 | | |
 |---|---|
-| **Proof of concept** | Running in the `dev` cluster; not yet deployed to any project |
 | **Personal initiative** | Built on personal time and resources |
 | **Built with Claude Code** | "Vibe coded", but guided by SDLC best practice and reviewed from a DevOps engineer's point of view |
 | **Focused scope** | Kubernetes observability at the **infrastructure** level, not yet at the application-code level |
 | **Built for real workflows** | Designed around common incident-handling use cases and the security policy we work under |
-
-## Roadmap
-
-| | Item | Status |
-|---|---|---|
-| ✅ | Multi-cluster, part 1: an SQS bridge, so a cluster with no inbound network access can still be investigated | Done |
-| 🚧 | Multi-cluster, part 2: each investigation runs against the right cluster, and incidents and memory carry a `cluster` label | In design; a staging cluster is being set up to validate it |
-| 🗓️ | Multi-cluster, part 3: chart-managed bridges per cluster | Planned |
 
 ## Read next
 

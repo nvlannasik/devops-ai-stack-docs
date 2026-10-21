@@ -41,7 +41,7 @@
   ],
   "cards": [
     { "dot": "rose", "title": "Safety boundaries", "items": ["The investigation loop sees read-only tools only", "Writes need a dry-run and a human Approve in Slack", "GitHub credentials live only in the llm-worker"] },
-    { "dot": "cyan", "title": "Network", "items": ["Slack, SQS and LLM APIs are reached outbound only", "The private network needs outbound SQS access only", "In dev the llm-worker runs in the same cluster"] },
+    { "dot": "cyan", "title": "Network", "items": ["Slack, SQS and LLM APIs are reached outbound only", "The private network needs outbound SQS access only"] },
     { "dot": "emerald", "title": "Memory", "items": ["Postgres: RCAs, confirmed causes, remediations, run traces, LLM usage", "Redis: conversation history (24h) and alert dedup (12h)"] }
   ]
 }

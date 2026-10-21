@@ -55,7 +55,7 @@ In short:
   - the first tool round fixes the namespace scope;
   - logs for more than two pods at once turn into a clarifying question;
   - repeated identical calls are served from a per-investigation memo.
-- **Sub-agent delegation** (enabled in dev). When an alert group names two or more services, the lead investigation may delegate one hypothesis per service (up to 3) to sub-investigations that run in parallel. Each reports SUPPORTED, CONTRADICTED or UNPROVEN back to the lead.
+- **Sub-agent delegation** (`SUBAGENT_ENABLED`). When an alert group names two or more services, the lead investigation may delegate one hypothesis per service (up to 3) to sub-investigations that run in parallel. Each reports SUPPORTED, CONTRADICTED or UNPROVEN back to the lead.
 - **Prompt-injection framing.** Any tool result containing instruction-like text — for example an imperative naming one of the agent's own tools — is logged and framed as data. It is not dropped: it stays quotable as evidence.
 
 ## 6. Gates on the answer

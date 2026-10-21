@@ -62,7 +62,6 @@ These are the interfaces where a change on one side breaks the other. They must 
 | agent ↔ mcp-server | MCP over HTTP, `Authorization: Bearer <MCP_AUTH_TOKEN>` | Standard MCP `listTools` / `callTool`. Write tools carry a `[WRITE]` description prefix. |
 | agent ↔ llm-worker (LLM) | SQS FIFO: `llm-request.fifo` → shared `llm-response.fifo` | `{ requestId, messages, tools, systemPrompt, traceId? }` → `{ requestId, response \| error }`. Routed by `requestId`. |
 | agent ↔ llm-worker (GitOps) | SQS FIFO: `gitops-request.fifo` → the same shared response queue | `{ requestId, op: dry_run \| open_pr \| history \| revert_pr \| locate, … }`. A refusal can carry `drift` (the repo and the cluster disagree). |
-| agent ↔ mcp-server bridge (multi-cluster) | SQS FIFO: `devops-mcp-<cluster>-request.fifo` → `devops-mcp-response.fifo` | `{ requestId, op: list_tools \| call_tool, tool?, args?, deadline, traceId? }`. A request is never retried. A request past its deadline is answered `expired` and never run. A write message is deleted before it runs (at-most-once). |
 
 `traceId` is the Slack thread id. One `grep <thread-id>` therefore joins the agent log, the llm-worker log and the Slack thread.
 
@@ -73,15 +72,3 @@ With `LLM_PROVIDER=router` the agent holds several backends and picks one per ca
 - **heavy route** — alerts, explicit investigation requests, remediation proposals.
 
 Failover is **up-only** (light → heavy, never the reverse), because a weak model fails by answering confidently, not by throwing an error. A backend that fails repeatedly is skipped for a cool-off. Only backends of kind `private-llm` use the SQS path; `claude` and `openai-compatible` backends are called directly.
-
-The dev cluster currently runs four backends: two OpenAI-compatible APIs and two private LLMs over SQS.
-
-## Multi-cluster (in progress)
-
-The target topology is a **central cluster** that hosts the observability stack and the agent, and **environment clusters** that are reachable only outbound.
-
-Each environment cluster runs:
-- a copy of `devops-mcp-server` in **SQS bridge mode** (`TRANSPORT=sqs`);
-- metrics and log shippers that write to the central Prometheus and Loki with a `cluster` label.
-
-Part 1 (the bridge) is live. Part 2 routes every Kubernetes tool call of an investigation to that investigation's cluster, while observability queries go to the central stack filtered by the `cluster` label. Part 2 is in design.

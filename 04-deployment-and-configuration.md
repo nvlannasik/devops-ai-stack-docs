@@ -9,7 +9,7 @@
    - The agent, mcp-server and worker images are amd64+arm64; the sample apps are arm64.
 2. **`devops-ai-helm-charts`**: a `v*` tag publishes the umbrella chart to GHCR (OCI).
 3. **`gitops-devops-ai-manifest`** (Flux + Kustomize):
-   - `clusters/{dev,stg,prd}/` — the Flux bootstrap for each cluster;
+   - `clusters/<cluster>/` — the Flux bootstrap for each cluster;
    - `apps/base/` — applications (devops-ai-stack, the sample apps, loadgen) and systems (postgres, prometheus, alertmanager, loki, fluent-bit, grafana, jaeger, cert-manager, longhorn, …);
    - `apps/dev/` — the dev overlay, the only overlay written so far.
 4. **Flux** reconciles HelmRelease `devops-ai-stack` (chart 0.7.0) into namespace `devops-tools`.
@@ -41,15 +41,14 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 | Slack | `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN` (Socket Mode), `SLACK_SIGNING_SECRET` | Secrets |
 | Slack | `SLACK_ALLOWED_USERS`, `SLACK_APPROVER_USERS`, `SLACK_ONCALL_USERS` | Comma-separated Slack user IDs |
 | Webhook | `ALERT_WEBHOOK_TOKEN` | Bearer token Alertmanager sends on `/alert`. If unset, the webhook is open (a warning is logged). |
-| LLM | `LLM_PROVIDER` = `claude` / `openai-compatible` / `private-llm` / `router` | The dev cluster runs `router` |
+| LLM | `LLM_PROVIDER` = `claude` / `openai-compatible` / `private-llm` / `router` | `router` holds several backends and picks one per call |
 | LLM router | `LLM_BACKEND_<N>_NAME/_KIND/_MODEL/_KEY/_CONTEXT_TOKENS/_MAX_TOKENS/_PRICE_*`, `LLM_ROUTE_LIGHT`, `LLM_ROUTE_HEAVY` | Validated at boot: a typo is a pod that refuses to start |
 | LLM | `LLM_MASK_IDENTIFIERS` | Default on |
 | SQS | `SQS_REQUEST_QUEUE_NAME`, `SQS_RESPONSE_QUEUE_NAME`, `SQS_GITOPS_REQUEST_QUEUE_NAME`, `AWS_REGION` | FIFO queues; the response queue is shared and routed by `requestId` |
 | MCP | `MCP_TRANSPORT=http`, `MCP_HTTP_URL`, `MCP_AUTH_TOKEN`, `MCP_TOOL_TIMEOUT_SECONDS` (45) | The token must match the MCP server's |
-| Multi-cluster | `MCP_SQS_CLUSTERS` | e.g. `lab2=devops-mcp-lab2-request.fifo`; unset = single cluster |
 | Storage | `MEMORY_BACKEND=redis`, `REDIS_*`; `DB_HOST`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SSL_MODE` | Incident memory is disabled if `DB_HOST` is unset |
 | Budgets | `MAX_CONCURRENT_INVESTIGATIONS` (5), `INVESTIGATION_TIMEOUT_SECONDS` (300), `MENTION_TOOL_ROUNDS` (2), `TOUR_TOOL_ROUNDS` (4) | |
-| Delegation | `SUBAGENT_ENABLED`, `SUBAGENT_MAX_FANOUT` (3), `SUBAGENT_TOOL_ROUNDS` (3), `SUBAGENT_MAX_ITERATIONS` (5) | On in dev |
+| Delegation | `SUBAGENT_ENABLED`, `SUBAGENT_MAX_FANOUT` (3), `SUBAGENT_TOOL_ROUNDS` (3), `SUBAGENT_MAX_ITERATIONS` (5) | |
 | Remediation | `GITOPS_REMEDIATION_ENABLED`, `REMEDIATION_VERIFY_DELAY_SECONDS` (300) | |
 | Incidents | `INCIDENT_RECONCILE_ENABLED` and its `_MIN_AGE`, `_CONFIRM` and `_BATCH` settings | Closes incidents whose resolved webhook never arrived |
 | Dashboard | `DASHBOARD_ENABLED`, `DASHBOARD_PORT` (3001), `DASHBOARD_PASSWORD`, `DASHBOARD_PUBLIC_URL` | Unset password ⇒ every page answers `503` |
@@ -59,7 +58,7 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 
 | Setting | Notes |
 |---|---|
-| `TRANSPORT` = `http` / `stdio` / `sqs` | `sqs` is the bridge mode for a cluster without inbound access |
+| `TRANSPORT` = `http` / `stdio` | The agent connects over `http` in a cluster |
 | `MCP_AUTH_TOKEN` | Required on `/mcp` |
 | `K8S_AUTH_MODE=incluster` | Uses its ServiceAccount; the chart renders the ClusterRole (get/list, plus the write verbs when write tools are enabled) |
 | `PROMETHEUS_URL`, `ALERTMANAGER_URL`, `LOKI_URL`, `TRACING_BACKEND` + `TRACING_URL` | The observability backends, each with optional basic auth |
@@ -83,7 +82,7 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 
 | `AWS_AUTH_MODE` | Use |
 |---|---|
-| `iam-anywhere` | On-premise or private network with an X.509 certificate (the dev cluster) |
+| `iam-anywhere` | On-premise or private network with an X.509 certificate |
 | `irsa` | EKS, IAM Roles for Service Accounts |
 | `instance-profile` | EC2 / ECS |
 | `env` | Local development and CI only |
