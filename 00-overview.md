@@ -1,94 +1,170 @@
-# DevOps AI Agent Stack — Overview
+# DevOps AI Agent Stack
 
-> **Audience:** everyone — engineers, on-call, and stakeholders.
-> **Status:** running in the `dev` cluster (namespace `devops-tools`). Multi-cluster support is in progress (see *Roadmap*).
+> ### Your first responder never sleeps.
+> An AI on-call teammate that lives in Slack. It investigates every alert the way your best SRE would, explains the root cause with evidence, and proposes a fix that **you** approve.
 
-## What it is
+**Status:** running in the `dev` cluster (namespace `devops-tools`) · **Audience:** everyone — on-call, engineers, leads.
 
-The DevOps AI Agent Stack is an AI-assisted incident responder that lives in Slack. When an Alertmanager alert fires — or when an engineer asks a question — it investigates the Kubernetes cluster and its observability data the way an on-call engineer would, and posts a structured **Root Cause Analysis (RCA)** in the alert's Slack thread within minutes.
+| 🔎 **Investigates** | 🧠 **Remembers** | 🛡️ **Fixes safely** | 🧭 **Onboards** |
+|---|---|---|---|
+| Minutes from alert to a structured RCA in the alert's own thread | Every incident, every confirmed cause, every fix that did or did not work | One fix at a time, dry-run first, executed only after a human clicks *Approve* | "Explain this cluster" answered from the live cluster, not from a stale wiki |
 
-It can also **propose one fix** for the problem it found. Nothing is ever changed without a human clicking *Approve*, and every change is verified afterwards.
+---
 
-## Why we built it
+## The problem it solves
 
-| Problem | What the stack does about it |
+When an alert fires, the first half hour of an incident looks the same every time: open five dashboards, list pods, read events, grep logs, check what was deployed. It all happens under pressure, and it is often done by whoever is least familiar with the service.
+
+| Without the agent | With the agent |
 |---|---|
-| The first 15–30 minutes of an incident go to gathering the same evidence every time (pods, events, logs, metrics, recent changes). | The agent gathers that evidence automatically and in parallel, and starts the thread with an RCA and the evidence behind it. |
-| Knowledge from past incidents lives in people's heads. | Every RCA is stored. Engineers can teach the agent the real root cause with `@agent learn`, and the next recurrence starts from it. |
-| Fixes applied by hand under pressure bypass review and are not audited. | Fixes go through a whitelist, a gate chain, a mandatory dry-run, a human approval, and an audit trail. For GitOps-managed workloads the fix becomes a pull request. |
-| New team members need a long time to learn what runs where. | `@agent explain this cluster` produces an onboarding tour built from the live cluster. |
+| On-call collects pods, events, logs, metrics and recent deploys by hand | All of that is gathered **in parallel, in seconds**, before anyone opens a laptop |
+| "Has this happened before?" lives in someone's head | Past incidents, **human-confirmed causes** and earlier fixes are recalled automatically |
+| A fix is applied with `kubectl` at 3 a.m., unreviewed and unaudited | The fix is **whitelisted, dry-run, approved in Slack, audited and verified** |
+| Five related alerts open five threads | **One incident, one thread**: neighbouring alerts join the thread that is already open |
+| A newcomer needs weeks to learn what runs where | `@agent explain this cluster` produces tables built from the cluster itself |
 
-## What it does today
+---
 
-- **Alert → RCA in Slack.** Root cause, evidence (with the tool that produced each fact), ruled-out hypotheses, recommended actions, impact and a confidence level. Low confidence automatically pages the on-call users.
-- **Conversational follow-ups** in the thread ("show me the logs", "when did this start?").
-- **Guarded remediation.** One whitelisted fix per incident, approval-gated, verified about 5 minutes later. GitOps pull requests are used for Flux-managed workloads.
-- **Incident memory.** It recalls human-confirmed causes, past RCAs, related incidents and past fixes with their outcomes.
-- **Change timeline.** It shows what changed in the namespace during the last 24 hours (rollouts, Helm upgrades, ConfigMaps, Git commits).
-- **Cross-alert correlation.** A neighbouring alert joins the open incident's thread instead of opening a new one.
-- **Cluster tour** for onboarding, and **postmortem drafts** on request.
-- **Multi-LLM.** It can use a hosted model (Claude, an OpenAI-compatible API) or a private LLM inside the private network, with automatic failover.
-- **Read-only dashboard.** Incidents, remediation outcomes, LLM cost, gate activity, the cluster map and the agent's memory.
+## See it in action — a real incident
 
-## How it works (one picture)
+From the `dev` cluster on 2026-10-21, as recorded in the agent's logs.
+
+| Time | What happened |
+|---|---|
+| **01:44:05** | Alertmanager fires `UnexpectedErrorLog` — **3 alerts across `checkout-gateway` and `storefront`**. The agent opens one thread for the whole group. |
+| 01:44:08 | It gathers what changed recently and locates the GitOps overlay that defines the affected workloads. |
+| 01:45:27 | It splits the work: **two sub-investigations run in parallel**, one per service, each testing its own hypothesis. |
+| 01:46:06 | The first sub-investigation fires **9 tool calls at once**: Alertmanager, two workload lookups, error-rate PromQL, endpoints, error logs, pods, events, services. |
+| 01:47:46 | Both sub-investigations report back. The lead combines their verdicts. |
+| **01:49:05** | **The RCA card is posted in Slack, 5 minutes after the alert.** |
+| 01:49:11 | It considers a fix. **A rolling restart is refused**: the kubelet had already restarted those pods 9 times, so a restart would change nothing. |
+| 01:49:16 | **An image change is refused too**: no evidence in the thread showed that the proposed image exists. Nothing was guessed and nothing was touched. |
+| 01:49:17 | The alert had resolved while the RCA was being written, so the incident is **closed automatically** on store. |
+| 01:52:30 | An engineer asks in the thread, *"coba tunjukin log terakhirnya"* ("show me the latest logs"). **The answer comes back in 65 seconds**, from 3 fresh tool calls. |
+
+The fix that was not proposed matters as much as the RCA. The agent is built to say "no" when the evidence is not there.
+
+---
+
+## What it does
+
+### 🔎 Investigate
+- **Alert → RCA in Slack.** The card holds:
+  - the root cause;
+  - the evidence, with the tool that produced each fact;
+  - the hypotheses that were ruled out;
+  - recommended actions and impact;
+  - read-only runbook commands;
+  - recent changes;
+  - a confidence level. **Low confidence pages on-call automatically.**
+- **Parallel sub-investigations.** When one alert group spans several services, each service gets its own sub-investigation.
+- **24 built-in playbooks**, for example OOMKilled, CrashLoopBackOff, ImagePullBackOff, high error rate, high latency, GitOps drift, certificate expiry and log alerts. They are chosen from the alert *and* from the evidence the agent finds along the way.
+- **Conversational follow-ups** in the same thread: "show me the logs", "when did this start?".
+
+### 🧠 Remember
+- **Teach it once.** `@agent learn` stores the *human-confirmed* root cause, and the next recurrence starts from it.
+- **Three tiers of memory, never mixed:**
+  1. what a human confirmed;
+  2. what the agent concluded before;
+  3. what merely looks related.
+- **Fixes remember their outcome.** "We restarted it last time and the alert stayed up" is something it reads, not something it rediscovers.
+- **Change timeline.** Rollouts, Helm upgrades, ConfigMaps and Git commits from the last 24 hours, attached to every alert.
+
+### 🛡️ Fix — safely
+- **One proposal, from a short whitelist:** restart, set image, set resources, scale, delete one pod, roll back, back up and delete an orphan, Flux reconcile.
+- **A chain of automated checks before a card even appears**, then a server-side dry-run, then a **human click**.
+- **GitOps-aware.** For Flux-managed workloads, the fix becomes a **pull request** (or a revert PR) instead of a live patch that the next reconcile would undo.
+- **Verified afterwards.** About 5 minutes after the change it posts `recovered`, `unchanged`, `worse` or `inconclusive`, and remembers the verdict.
+
+### 🧭 Onboard and document
+- **Cluster tour.** Inventory tables built from the cluster: request flow, what manages each workload, and where in Git to change it.
+- **Postmortem draft** on request. The model writes the narrative; the timeline and the numbers come straight from the database.
+
+### 📊 See and measure
+- **Read-only dashboard:**
+  - incidents, remediation verdicts and **LLM cost per incident**;
+  - every safety gate's activity;
+  - the cluster map;
+  - what the agent remembers.
+- **Every run recorded and replayable.** A change to the agent is tested against real past incidents before it ships.
+
+---
+
+## Safe by design
+
+1. **The investigator cannot write.** Write tools are invisible to the model that investigates, and refused if it calls one anyway.
+2. **Code checks, not just prompts.** Missing evidence, unread logs, a fabricated claim, a mutating command in the runbook — each is caught by a deterministic gate, not by asking the model nicely.
+3. **A human decides.** Every change needs an approver's click in Slack. Cards expire after 15 minutes, and a double click can never run a change twice.
+4. **Your data stays yours.** IPs, hostnames, ARNs and emails are masked before any LLM sees a request. Secrets are never read. GitHub credentials never leave the private network.
+5. **Cluster text is treated as data.** A log line that tries to give the agent instructions is framed as evidence, never obeyed.
+
+---
+
+## Works with your stack
+
+| Area | What it connects to |
+|---|---|
+| Chat | **Slack**: Socket Mode, no public URL needed |
+| Alerts | **Alertmanager** webhook, grouped by `alertname` + `namespace` |
+| Platform | **Kubernetes** (k3s in dev), **Flux** GitOps, **Helm** |
+| Observability | **Prometheus**, **Loki**, **Alertmanager**, **Jaeger** or **Tempo** |
+| LLMs | **Claude**, any **OpenAI-compatible** API, or a **private LLM** inside your network over AWS SQS. A router can use several at once with automatic failover. |
+| Source control | **GitHub Enterprise**: pull requests and revert PRs for GitOps fixes |
+| Storage | **PostgreSQL** (long-term memory), **Redis** (conversation memory) |
+
+## How it fits together
 
 ![DevOps AI Agent Stack architecture](diagrams/architecture/architecture.png)
 
 *Diagram made with archify. Interactive version: `diagrams/architecture/architecture.html`; vector: `diagrams/architecture/architecture.svg`.*
 
-1. An alert (or a mention) arrives. The agent deduplicates it, correlates it with open incidents, recalls past incidents and builds the change timeline.
-2. An LLM drives an **investigation loop**: it calls read-only tools on the MCP server (Kubernetes, Prometheus, Loki, Alertmanager, tracing), reads the results, and calls more until it can explain the incident.
-3. Deterministic **gates** check the answer before it leaves. For example, an alert answered without evidence gets another round, and a claim with no supporting log is capped at Medium confidence.
-4. The RCA is posted to Slack and stored in Postgres.
-5. If a fix is warranted, the agent proposes one. A human approves it, the change runs, and the agent checks later whether it worked.
-
-## Safety model in one paragraph
-
-The investigating model **never has write access**: write tools are filtered out of the loop twice. A change can only happen through a separate proposal that must:
-- be on a whitelist of reversible actions;
-- pass a chain of deterministic checks;
-- survive a server-side dry-run;
-- target an allowed namespace;
-- be **approved by a named human in Slack**.
-
-On GitOps-managed workloads the change becomes a pull request instead of a live patch. Before any request leaves for an LLM, credential-like identifiers (IPs, hostnames, ARNs, emails) are masked. Text returned by the cluster (logs, events) is framed as data so it cannot instruct the agent.
-
-## Components at a glance
-
 | Component | Repository | Role |
 |---|---|---|
-| **devops-ai-agent** | `devops-ai-agent` | Slack bot, Alertmanager webhook, investigation loop, remediation flow, dashboard. The orchestrator. |
-| **devops-mcp-server** | `devops-mcp-server` | MCP tool server: 55 read-only tools (Kubernetes, Prometheus, Loki, Alertmanager, tracing, capacity) and 8 write tools behind a flag. |
-| **llm-worker** | `devops-ai-agent-worker` | SQS consumer in the private network. It bridges the agent to a private LLM and to GitHub Enterprise for GitOps PRs. Outbound-only. |
-| **Helm chart** | `devops-ai-helm-charts` | Umbrella chart that deploys the three services as one release and refuses to render if their shared settings disagree. |
-| **GitOps manifests** | `gitops-devops-ai-manifest` | Flux + Kustomize. The source of truth for what runs in each cluster. |
-| **Sample apps** | `devops-sample-apps` | A four-service checkout stack with fault knobs, used to produce realistic incidents for testing and benchmarking. |
+| **devops-ai-agent** | `devops-ai-agent` | The brain: Slack bot, alert intake, investigation loop, safety gates, remediation, dashboard |
+| **devops-mcp-server** | `devops-mcp-server` | The hands: 55 read-only tools and 8 guarded write tools over the Model Context Protocol |
+| **llm-worker** | `devops-ai-agent-worker` | The bridge into the private network: private LLM and GitHub Enterprise, outbound-only |
+| **Helm chart** | `devops-ai-helm-charts` | One release for all three, refusing to render if their shared settings disagree |
+| **GitOps manifests** | `gitops-devops-ai-manifest` | Flux + Kustomize, the source of truth for each cluster |
+| **Sample apps** | `devops-sample-apps` | A four-service checkout stack with fault switches, used to rehearse and benchmark incidents |
+
+## By the numbers
+
+| | |
+|---|---|
+| **63** | tools the agent can use (55 read-only, 8 write) |
+| **24** | built-in playbooks for specific failure modes |
+| **8** | whitelisted remediation actions, each reversible or backed up first — no generic "run anything" |
+| **4** | LLM backends in the dev router today (2 hosted, 2 private) |
+| **15 min** | lifetime of an approval card |
+| **~5 min** | from an approved fix to its verified verdict |
 
 ## Roadmap
 
-| Item | Status |
+| | Item | Status |
+|---|---|---|
+| ✅ | Multi-cluster, part 1: an SQS bridge, so a cluster with no inbound network access can still be investigated | Done |
+| 🚧 | Multi-cluster, part 2: each investigation runs against the right cluster, and incidents and memory carry a `cluster` label | In design; a staging cluster is being set up to validate it |
+| 🗓️ | Multi-cluster, part 3: chart-managed bridges per cluster | Planned |
+
+## Read next
+
+| If you want to… | Read |
 |---|---|
-| Multi-cluster, part 1: an SQS bridge so the MCP server can serve a cluster with no inbound network access | Done |
-| Multi-cluster, part 2: route each investigation to the right cluster, and add a `cluster` label to incidents and memory | In design. A second (staging) cluster is being set up to validate it. |
-| Multi-cluster, part 3: chart-managed bridges per cluster | Planned |
-
-## Child pages
-
-1. **Architecture** — components, network boundaries, data stores, cross-service contracts.
-2. **How an Investigation Works** — from alert to RCA, step by step.
-3. **Remediation and Safety Guardrails** — what the agent may change, and every check in front of it.
-4. **Deployment and Configuration** — GitOps, the Helm chart, key settings, Slack and Alertmanager setup.
-5. **Operations Guide** — dashboard, health, logs, tracing, troubleshooting.
-6. **Slack User Guide** — how to work with the agent day to day.
+| use the agent in Slack | **Slack User Guide** |
+| understand the moving parts | **Architecture** |
+| know exactly what happens after an alert | **How an Investigation Works** |
+| review what it may change, and every check in front of it | **Remediation and Safety Guardrails** |
+| deploy or configure it | **Deployment and Configuration** |
+| run it day to day | **Operations Guide** |
 
 ## Glossary
 
 | Term | Meaning |
 |---|---|
-| **RCA** | Root Cause Analysis — the structured answer the agent posts for an incident. |
-| **MCP** | Model Context Protocol — the standard protocol the agent uses to discover and call tools. |
-| **Tool** | One read-only (or, behind approval, write) operation such as `k8s_list_pods` or `prometheus_query`. |
-| **Gate** | A deterministic check in code that can hold, rewrite or refuse what the model produced. |
-| **Skill / playbook** | A Markdown guide for one kind of failure (e.g. OOMKilled), loaded into the model's context when the symptom matches. |
-| **Light / heavy route** | The LLM router's two tiers: a cheap model for casual questions, a strong model for alerts and remediation. |
-| **Approval card** | The Slack message with *Approve / Reject* buttons that every change must pass through. |
+| **RCA** | Root Cause Analysis — the structured answer the agent posts for an incident |
+| **MCP** | Model Context Protocol — the standard protocol the agent uses to discover and call tools |
+| **Tool** | One operation such as `k8s_list_pods` or `prometheus_query`; read-only, unless it is a write behind approval |
+| **Gate** | A deterministic check in code that can hold, rewrite or refuse what the model produced |
+| **Playbook** | A Markdown guide for one kind of failure, loaded into the model's context when the symptom matches |
+| **Light / heavy route** | The LLM router's two tiers: a cheap model for casual questions, a strong one for alerts and fixes |
+| **Approval card** | The Slack message with *Approve / Reject* buttons that every change must pass through |
