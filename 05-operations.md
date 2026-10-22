@@ -24,6 +24,7 @@ kubectl -n devops-tools port-forward deploy/devops-ai-agent 3001:3001
 |---|---|
 | `/` Overview | Incident counts and trends, recent incidents, remediation outcomes, model activity and **LLM cost per backend** |
 | `/incidents`, `/incidents/<id>` | The filterable list. Each incident shows its RCA parsed into sections, change timeline, related alerts, remediations and verdicts, LLM usage and cost, and the harness trace. |
+| `/postmortems` | Every incident that has a postmortem draft, newest first, with who asked for it, the backend and how many revisions |
 | `/incidents/<id>/postmortem` (`.md`) | The latest postmortem draft, rendered or as a raw Markdown download |
 | `/cluster` | The cluster inventory as a map: namespace → host → Service → workload → what manages it |
 | `/memory` (Alert memory) | What the agent will recall for each alert + namespace, in the exact recall text it reads |
