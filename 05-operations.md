@@ -80,5 +80,4 @@ kubectl -n devops-tools logs deploy/devops-llm-worker  | grep 1792547046.423669
 ## Known limits
 
 - **Pattern-based defences.** Masking and injection framing are pattern-based (see *Remediation and Safety Guardrails*).
-- **Correlation is replica-local while in flight.** An investigation still in flight is visible to correlation only on the replica that runs it.
 - **The RCA is a hypothesis.** Its quality depends on the LLM backend that answered; the footer always names that backend.
