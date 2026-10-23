@@ -60,6 +60,8 @@ After an execution, a verification check is written to Postgres. Any replica cla
 - `worse` (readiness dropped);
 - `inconclusive`.
 
+A **GitOps PR** changes nothing until it is merged and Flux syncs it, so its check waits first. The agent re-reads the workload every minute until it runs what the PR set (the new image, or the new replica count), then takes the baseline and runs the same verification. If the change is not running 24 hours after the PR, the check closes as *not applied*, without a verdict. Revert PRs are not watched yet.
+
 The verdict is remembered, so the next occurrence of the same alert sees "this fix was tried and the alert stayed up". Cards nobody clicks are expired, and their message is updated so a stale *Approve* button never lingers.
 
 ## Access control

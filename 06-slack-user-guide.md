@@ -51,7 +51,7 @@ An approval card shows:
 - Only the configured **approvers** can click ✅ *Approve* or 🚫 *Reject*. The card mentions them.
 - Cards **expire after 15 minutes**. An expired card cannot be executed.
 - After *Approve*, the card updates with the result. About **5 minutes later** the agent posts a verdict: `recovered`, `unchanged`, `worse` or `inconclusive`.
-- For a Flux-managed workload, *Approve* **opens a pull request** and nothing changes until it is merged. If the cluster has drifted from Git, the agent proposes `flux_reconcile` instead.
+- For a Flux-managed workload, *Approve* **opens a pull request** and nothing changes until it is merged. Once Flux runs the change, the agent posts 🔄 *GitOps change applied* and, about 5 minutes later, the verdict. Not merged within 24 hours: ⌛ *not applied*, and no verdict. If the cluster has drifted from Git, the agent proposes `flux_reconcile` instead.
 - The agent **never** changes anything without this click. If you do not want the change, click *Reject*, or ignore the card and let it expire.
 
 ## Teaching it: `learn`
