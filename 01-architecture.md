@@ -49,7 +49,7 @@ Everything is deployed by **Flux** from `gitops-devops-ai-manifest`. The three s
 | Store | What it holds | Lifetime |
 |---|---|---|
 | **Postgres** | `incidents` (RCA, labels, change timeline, parent/child correlation), `incident_feedback` (human-confirmed causes), `remediations` (proposal, approval, result, backup), `remediation_checks` (verification due dates and verdicts), `llm_usage` (tokens per call and backend), `agent_events` (the full trace of every run), `postmortems` | Durable. The schema is applied by versioned migrations at pod startup (advisory-locked). |
-| **Redis** | `conv:*` conversation history per Slack thread, `rca:*` "RCA already sent" flag, `skills:*` the playbooks a thread carries, `dedup:*` alert fingerprints, `inflight:*` alert investigations still running, so every replica can correlate against them | 24h conversation TTL; 12h dedup claims; 15m in-flight entries |
+| **Redis** | `conv:*` conversation history per Slack thread, `rca:*` "RCA already sent" flag, `skills:*` the playbooks a thread carries, `dedup:*` alert fingerprints, `inflight:*` alert investigations still running, so every replica can correlate against them, `threadlock:*` which replica is running a thread's turn, so one conversation never runs on two pods at once | 24h conversation TTL; 12h dedup claims; 15m in-flight entries; 60s renewed thread leases |
 
 Conversation memory (Redis) and incident memory (Postgres) are deliberately separate: one is a short-lived cache, the other is the agent's long-term memory.
 
