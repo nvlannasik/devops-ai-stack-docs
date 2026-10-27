@@ -47,6 +47,7 @@ kubectl -n devops-tools logs deploy/devops-llm-worker  | grep 1792547046.423669
 - Useful markers: `Investigation started` / `Investigation complete in …ms (N LLM calls, M tool calls)`, `→ tool:` / `← tool:`, `[remediation] …`, `[slack] RCA card: …`, `[reconcile] …`.
 - Delegated sub-investigations log as `<thread>/sub-1`, `<thread>/sub-2`.
 - The full structured record of every run (each LLM turn, tool call and gate decision) is in Postgres `agent_events`, and is browsable from the incident page.
+- **OpenTelemetry traces** (chart 0.8.0, `global.tracing`): one trace per investigation across the agent, the MCP server and the llm-worker, in Jaeger (`jaeger.annasik.cloud`, behind the same login as Headlamp). The `investigate` span holds `chat {model}` spans (model, backend, route, token counts), `execute_tool {name}` spans and `gate` events; the llm-worker's `llm request` / `gitops request` spans and the MCP server's spans join it through the SQS message attributes and HTTP headers. An incident's page has an **Open in Jaeger** button. Spans carry metadata only — no prompt, answer, tool result or Slack text, and URLs lose their query string.
 
 ## Common tasks
 

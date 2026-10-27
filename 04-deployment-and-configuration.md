@@ -52,7 +52,8 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 | Remediation | `GITOPS_REMEDIATION_ENABLED`, `REMEDIATION_VERIFY_DELAY_SECONDS` (300) | |
 | Incidents | `INCIDENT_RECONCILE_ENABLED` and its `_MIN_AGE`, `_CONFIRM` and `_BATCH` settings | Closes incidents whose resolved webhook never arrived |
 | Dashboard | `DASHBOARD_ENABLED`, `DASHBOARD_PORT` (3001), `DASHBOARD_PASSWORD`, `DASHBOARD_PUBLIC_URL` (chart: `dashboard.publicUrl`) | Unset password ⇒ every page answers `503`. The public URL is what the postmortem links in Slack point to. |
-| Tracing | `TRACE_ENABLED` (true), `LOG_LEVEL` | |
+| Tracing | `TRACE_ENABLED` (true), `LOG_LEVEL` | The harness trace in Postgres (`agent_events`) |
+| OpenTelemetry | `OTEL_EXPORTER_OTLP_ENDPOINT` (chart: `global.tracing.endpoint`), `OTEL_TRACES_SAMPLER`, `TRACING_UI_URL` (chart: `dashboard.tracingUiUrl`) | Unset endpoint ⇒ no SDK is loaded. Set on all three services by `global.tracing.enabled`. |
 
 ## Key settings — devops-mcp-server
 
