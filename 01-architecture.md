@@ -7,7 +7,7 @@
 The stack is three services, each with one job. Splitting them this way keeps cluster access, LLM access and Slack access in separate processes with separate credentials.
 
 ### devops-ai-agent (the orchestrator)
-A Node.js 24 / TypeScript service. One process holds:
+A Node.js 26 / TypeScript service. One process holds:
 - **Slack integration** (Bolt, Socket Mode — outbound WebSocket, no public URL needed): mentions, ✅ reactions, approval buttons. Everything is plain Slack messages and Block Kit buttons, so it works the same in the desktop and the mobile app.
 - **Alertmanager webhook** `POST /alert` (bearer-token protected). It answers `200` at once and investigates in the background.
 - **Investigation loop**: builds the context, calls the LLM, executes tool calls in parallel, and runs the gates.
