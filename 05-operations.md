@@ -4,6 +4,8 @@
 
 ## Health at a glance
 
+Four checks tell you whether the stack is up and running the code you expect:
+
 | Check | How |
 |---|---|
 | Agent readiness | `GET /health` on port 3000 → `{"ok":true,"checks":{"mcp":"up","postgres":"up","redis":"up"}}`. It returns `503` when a configured dependency is down, so Kubernetes stops routing to that pod. |
@@ -51,6 +53,8 @@ kubectl -n devops-tools logs deploy/devops-llm-worker  | grep 1792547046.423669
 
 ## Common tasks
 
+The changes that come up most often, and where each one is made:
+
 | Task | How |
 |---|---|
 | Deploy new code | Push to `main` → wait for the GitHub Actions build → `kubectl -n devops-tools rollout restart deploy/<service>` → check `GIT_SHA` |
@@ -63,6 +67,8 @@ kubectl -n devops-tools logs deploy/devops-llm-worker  | grep 1792547046.423669
 | Run the benchmark | Silence `namespace=~bench-.*` in Alertmanager first, or every injected fault also pages the production agent |
 
 ## Troubleshooting
+
+Start from what you see, then check the likely cause:
 
 | Symptom | Likely cause | Check |
 |---|---|---|
@@ -80,5 +86,7 @@ kubectl -n devops-tools logs deploy/devops-llm-worker  | grep 1792547046.423669
 
 ## Known limits
 
-- **Pattern-based defences.** Masking and injection framing are pattern-based (see *Remediation and Safety Guardrails*).
-- **The RCA is a hypothesis.** Its quality depends on the LLM backend that answered; the footer always names that backend.
+- **Pattern-based defences.** Identifier masking, secret redaction and injection framing are pattern-based, so they reduce exposure without guaranteeing it (see *Remediation and Safety Guardrails*).
+- **The RCA is a hypothesis.** Its quality depends on the LLM backend that answered; the footer always names that backend. Read the evidence and the confidence, not only the root cause.
+- **Infrastructure level only.** The agent reads the cluster and the observability data, not the application's source code. A bug inside the code is found only as far as its symptoms show in logs, metrics and traces.
+- **One fix at a time.** Each incident gets at most one proposal. A fault that needs several changes is explained in the RCA, and the rest is left to a human.

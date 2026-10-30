@@ -8,11 +8,21 @@
 
 ## Layered defences
 
+No single check is trusted on its own. A change has to get past code, a human and a verification, in that order:
+
 ![Guarded remediation flow](diagrams/remediation/remediation.png)
 
 *Diagram made with archify. Interactive version: `diagrams/remediation/remediation.html`; vector: `diagrams/remediation/remediation.svg`.*
 
+A fix passes through three layers, and any one of them can stop it:
+
+1. **Checked by code.** The model proposes **one** action from the whitelist below. The gate chain checks it against the evidence in the thread; a refused proposal produces no card, and the reason is logged. Next, the MCP server runs the action as a **dry-run**: the namespace must be on the allowlist and the change within its bounds, and Kubernetes validates it without applying it.
+2. **Human decision.** Only a proposal that survived the code checks becomes an **approval card** in Slack. A named approver clicks *Approve* or *Reject* within 15 minutes, otherwise the card closes as expired.
+3. **Execute and verify.** *Approve* is claimed atomically, so a double click or a second replica can never run the change twice. A live change is applied directly. On a Flux-managed workload the change becomes a **pull request** instead, and drift becomes a `flux_reconcile`. About 5 minutes after the change runs, a durable check posts the **verdict** into the thread.
+
 ## Whitelisted actions
+
+These are the only eight changes the agent can ever propose. Each is a typed MCP write tool, not a free-form command:
 
 | Action | When it is proposed | Extra guardrails |
 |---|---|---|
@@ -29,18 +39,28 @@ There is deliberately **no generic delete or arbitrary patch**. Every action is 
 
 ## The gate chain
 
-One chain (`refusalFor`) serves both production and the benchmark, so a test cannot pass a card that production would refuse. It contains these checks:
-- placeholder or fabricated evidence;
-- a proposal that asks the user for input;
-- a replacement or no-op change (the image "change" is the image already running; a restart of healthy pods);
-- the target kind is wrong;
-- resource fault;
-- unjustified scale-out;
-- target not grounded in tool output;
-- mismatch with what the agent offered;
-- duplicate of an open card.
+Every proposal is checked by code before a card can appear. One chain (`refusalFor`) serves both production and the benchmark, so a test cannot pass a card that production would refuse.
 
-A refusal gets **one** re-ask that quotes the refusal, and the answer runs the whole chain again.
+**Before the chain**, the proposal itself must be well formed. A proposal is rejected when it holds a placeholder such as `namespace="X"`, or when it asks the user for input instead of naming a target.
+
+**The chain**, in the order the checks run:
+
+| Check | What it refuses | Skipped for a human's own request? |
+|---|---|---|
+| **Kind** | A target named with the wrong kind, for example a ReplicaSet or a StatefulSet proposed as a Deployment. It runs first, because every later check reads the spec by kind. | No |
+| **Replacement and no-op** | A restart or pod delete that cannot help: the pods are healthy and nothing names them as the fault, the kubelet has already restarted them many times, or the error is RBAC `forbidden`. Also a change that changes nothing: the image already running, or the resources already configured. | Yes |
+| **Quarantine** | A scale to zero of a workload that no capacity scan in this thread measured as idle | No |
+| **Orphan** | A delete of an object that no unused-resource scan in this thread listed as an orphan | No |
+| **Rollback** | A rollback with no matching change on the thread's change timeline. The target revision is chosen by code, never by the model. | No |
+| **Offer** | A proposal that acts on a different object from the one the agent offered and the user agreed to | No |
+| **Target** | A target that appears in no tool result and no alert label, so it was invented rather than found | No |
+| **Resource fault** | A resize with no resource fault (OOMKill, throttling, insufficient CPU or memory) on the target's own lines of evidence | Yes |
+| **Scale** | A scale-out with no measured saturation of that workload (throttling, backlog, pending pods) | Yes |
+| **Image** | An image that no tool result in the thread showed, and that nobody asked for by name | No |
+
+**After the chain**, two more checks run. A proposal that duplicates a card still open for the same incident is dropped. Then comes the MCP server's dry-run.
+
+A refusal gets **one** re-ask that quotes the refusal, and the answer runs the whole chain again. If the re-ask is refused too, there is no card. The refusal is posted in the thread only when a human asked for the change; when the model proposed it, the refusal is logged and noted for follow-up questions.
 
 An alert firing is evidence enough to consider a fix. A casual mention is not: it proposes only when the reply is an RCA, the user asked for a change, or the answer contains real fault evidence.
 
@@ -66,6 +86,8 @@ The verdict is remembered, so the next occurrence of the same alert sees "this f
 
 ## Access control
 
+Who may do what, and how each party proves it:
+
 | Who | Can do |
 |---|---|
 | `SLACK_ALLOWED_USERS` (plus on-call and approvers; empty = anyone in the bot's channels) | Mention the agent, ✅-learn |
@@ -77,13 +99,15 @@ The verdict is remembered, so the next occurrence of the same alert sees "this f
 
 ## Data protection
 
+What leaves the cluster, and in what form:
+
 - **Identifier masking.** Before any request reaches an LLM backend, hosted or private, IPs, emails, AWS ARNs and account IDs, and public hostnames are replaced with stable tokens. The tokens are restored in the reply. Workload and namespace names are kept, because the model reasons with them.
-- **Secrets are never read.** The tool `k8s_list_secrets` returns names and types only. The MCP server never returns environment variable values, only their names.
+- **Secret values are masked at the source.** The tool `k8s_list_secrets` returns names and types only. Every other tool result is masked inside the MCP server before it leaves the cluster: env values whose name ends in a secret word (`DB_PASSWORD`, `API_TOKEN`), the value after `--token` or `--password` in container args, and token-shaped text (JWTs, base64 tokens, Bearer headers, AWS key ids, passwords in URLs). Names and references (`secretName`, `secretKeyRef`) are kept.
 - **The agent holds no GitHub credentials.** They live only in the llm-worker inside the private network.
 - **Cluster text is data.** Instruction-like text inside logs, events or annotations is framed as untrusted data before it reaches the model.
 - **The dashboard escapes everything.** RCA text is LLM output, so every value is escaped and a strict Content Security Policy applies; only the two map pages run a script, with a per-response nonce.
 
 ## What is not a guarantee
 
-- Masking and injection framing are **pattern-based**. They reduce exposure; the real security boundary is still the write-tool isolation, the dry-run and the human approval click.
+- Masking, secret redaction and injection framing are **pattern-based**. They reduce exposure, but a secret in an unusual shape can still get through. The real security boundary is still the write-tool isolation, the dry-run and the human approval click, and secrets belong in Kubernetes Secrets, not in plain args or env values.
 - The agent's RCA is a **hypothesis with evidence**, not a verdict. The confidence level and the grounding warnings say how much to trust it.

@@ -44,9 +44,17 @@ Together these make a **common minimum standard** for observability on Kubernete
 
 ### The common issue-handling flow
 
+Most teams handle an incident the same way, in three phases:
+
+1. **Detect.** An alert rule over metrics or logs fires, and Alertmanager sends a notification to Slack or email.
+2. **Investigate.** The on-call engineer responds from wherever they are, gets to a laptop, and analyses the incident in dashboards, one panel at a time. **This is the bottleneck, and where most of the time goes.**
+3. **Resolve.** The engineer takes action to fix it, and writes a report — if anyone writes it at all.
+
 ![The common issue-handling flow](diagrams/issue-flow/issue-flow.png)
 
 *Diagram made with archify. Interactive version: `diagrams/issue-flow/issue-flow.html`.*
+
+Detection is automated, and the fix is usually quick. The middle step is manual, slow and depends on who is on call. That is the step the agent takes over.
 
 ### A night on call
 
@@ -65,6 +73,8 @@ Together these make a **common minimum standard** for observability on Kubernete
 **Investigation: 38 minutes. Fix: 7 minutes.** More than 80% of the incident was spent *finding* the problem, not fixing it. The next morning nothing is written down, and the next time it happens someone else starts from zero.
 
 ### Why it hurts
+
+That night is not unusual. The same six problems turn up in almost every team's incidents:
 
 | Challenge | What it costs |
 |---|---|
@@ -102,6 +112,8 @@ Because it lives in Slack, it goes wherever Slack goes. **The on-call engineer c
 
 ### Goals
 
+The agent is built around six goals. Each one answers a problem from *Why it hurts*:
+
 | # | Goal | What it means |
 |---|---|---|
 | 01 | **Faster time to root cause** | Every alert becomes an evidence-based RCA in Slack within minutes, not after manual digging in Grafana |
@@ -112,6 +124,8 @@ Because it lives in Slack, it goes wherever Slack goes. **The on-call engineer c
 | 06 | **Learn from every incident** | Past RCAs and confirmed fixes are reused, so recurring issues are resolved faster |
 
 ### Before and after
+
+The same incident, handled without and with the agent:
 
 | | Before | With the agent |
 |---|---|---|
@@ -157,6 +171,8 @@ The incident is closed, the lesson is stored with `@agent learn`, and the dashbo
 
 ### Demo videos
 
+Three short recordings show the main flows from start to finish, each typed into Slack as a real user would:
+
 | Scenario | What you do | What the agent does | Video |
 |---|---|---|---|
 | **Ask, investigate, follow up** | *"Check the logs of the storefront service"*, then *"Why is it failing?"* | Reads logs, metrics and pod status, then answers the follow-up in the same thread | 🎬 *add link* |
@@ -181,6 +197,7 @@ The agent is not a desktop tool. Everything happens in Slack, so **the Slack mob
 Incidents happen at dinner, in traffic or in bed. The first response no longer waits until someone is back at a desk.
 
 ### 🔎 Investigate
+The agent does the digging an engineer would otherwise do by hand: it reads the cluster, metrics, logs and traces, and writes up what it found.
 - **Alert → RCA in Slack.** The card holds:
   - the root cause;
   - the evidence, with the tool that produced each fact;
@@ -194,6 +211,7 @@ Incidents happen at dinner, in traffic or in bed. The first response no longer w
 - **Conversational follow-ups** in the same thread: "show me the logs", "when did this start?".
 
 ### 🧠 Remember
+Every incident leaves something behind, so the next one does not start from zero.
 - **Teach it once.** `@agent learn` stores the *human-confirmed* root cause, and the next recurrence starts from it.
 - **Three tiers of memory, never mixed:**
   1. what a human confirmed;
@@ -203,36 +221,37 @@ Incidents happen at dinner, in traffic or in bed. The first response no longer w
 - **Change timeline.** Rollouts, Helm upgrades, ConfigMaps and Git commits from the last 24 hours, attached to every alert.
 
 ### 🛡️ Fix — safely
+The agent may suggest a fix, but it never applies one on its own. Code checks the proposal first, and then a human decides.
 - **One proposal, from a short whitelist:** restart, set image, set resources, scale, delete one pod, roll back, back up and delete an orphan, Flux reconcile.
 - **A chain of automated checks before a card even appears**, then a server-side dry-run, then a **human click**.
 - **GitOps-aware.** For Flux-managed workloads, the fix becomes a **pull request** (or a revert PR) instead of a live patch that the next reconcile would undo.
 - **Verified afterwards.** About 5 minutes after the change it posts `recovered`, `unchanged`, `worse` or `inconclusive`, and remembers the verdict.
 
 ### 🧭 Onboard and document
-- **Cluster tour.** Inventory tables built from the cluster: request flow, what manages each workload, and where in Git to change it.
-- **Postmortem draft** on request. The model writes the narrative; the timeline and the numbers come straight from the database.
+The same access that lets the agent investigate also lets it explain the system to a newcomer, and write up an incident afterwards.
+- **Cluster tour.** Ask *"explain this cluster"* or *"jelasin namespace X"*. The answer is a set of inventory tables built from the live cluster, not from a wiki that may be out of date. They show how requests flow from the ingress to each workload, what manages each workload (Flux, Helm or nothing), and where in Git to change it.
+- **Postmortem draft** on request. Mention the agent with `postmortem` in an incident thread. The model writes the narrative: summary, impact, root cause, what went well and poorly, and action items. The timeline and the numbers come straight from the database, so they are never invented.
 
 ### 📊 See and measure
+What the agent did, what it cost and how well it worked are all visible, not taken on trust.
 - **Read-only dashboard:**
   - incidents, remediation verdicts and **LLM cost per incident**;
   - every safety gate's activity;
   - the cluster map;
   - what the agent remembers.
 - **Every run recorded and replayable.** A change to the agent is tested against real past incidents before it ships.
-
----|---|---|
-| **Ask, investigate, follow up** | *"Check the logs of the storefront service"*, then *"Why is it failing?"* | Reads logs, metrics and pod status, then answers the follow-up in the same thread |
-| **Guarded remediation** | *"List the deployments in namespace sample-apps"*, pick one, then *"Restart it"* | Dry-runs the restart first, then posts an approval card. You approve with one tap on your phone, and it verifies the result. |
-| **Fix the GitOps way** | *"Scale storefront to 3 replicas"* | Sees that the workload is Flux-managed, so it does not touch the cluster directly. The card shows the Git diff; approving opens a PR, and Flux rolls it out after the merge. |
+- **Distributed tracing of the agent itself.** One investigation is one trace in Jaeger, across the agent, the MCP server and the llm-worker, so a slow answer shows exactly where the time went.
 
 ---
 
 ## Safe by design
 
+Giving an AI access to production is only acceptable if its limits are enforced by the system, not by the model's good behaviour. Five principles decide what it can and cannot do:
+
 1. **The investigator cannot write.** Write tools are invisible to the model that investigates, and refused if it calls one anyway.
 2. **Code checks, not just prompts.** Missing evidence, unread logs, a fabricated claim, a mutating command in the runbook — each is caught by a deterministic gate, not by asking the model nicely.
 3. **A human decides.** Every change needs an approver's click in Slack. Cards expire after 15 minutes, and a double click can never run a change twice.
-4. **Your data stays yours.** IPs, hostnames, ARNs and emails are masked before any LLM sees a request. Secrets are never read. GitHub credentials never leave the private network.
+4. **Your data stays yours.** IPs, hostnames, ARNs and emails are masked before any LLM sees a request. Secret values are masked in every tool result before it leaves the cluster. GitHub credentials never leave the private network.
 5. **Cluster text is treated as data.** A log line that tries to give the agent instructions is framed as evidence, never obeyed.
 
 ---
@@ -258,6 +277,8 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 
 ## Works with your stack
 
+The agent plugs into tools a Kubernetes team usually already runs. Nothing on this list has to be replaced; the agent reads from it and reports into it.
+
 | Area | What it connects to |
 |---|---|
 | Chat | **Slack**: Socket Mode, no public URL needed |
@@ -269,6 +290,8 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 | Storage | **PostgreSQL** (long-term memory), **Redis** (conversation memory) |
 
 ### Tech stack
+
+What the stack itself is built from, layer by layer:
 
 | Layer | Built with |
 |---|---|
@@ -282,6 +305,8 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 
 ## How it fits together
 
+Three services share the work. The **agent** decides what to do, the **MCP server** is the only thing that touches the cluster and the observability backends, and the **llm-worker** reaches into the private network. Alertmanager and Slack sit at the edges.
+
 ![DevOps AI Agent Stack architecture](diagrams/architecture/architecture.png)
 
 *Diagram made with archify. Interactive version: `diagrams/architecture/architecture.html`; vector: `diagrams/architecture/architecture.svg`.*
@@ -294,10 +319,15 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 | **Helm chart** | `devops-ai-helm-charts` | One release for all three, refusing to render if their shared settings disagree |
 | **GitOps manifests** | `gitops-devops-ai-manifest` | Flux + Kustomize, the source of truth for what runs |
 | **Sample apps** | `devops-sample-apps` | A four-service checkout stack with fault switches, used to rehearse and benchmark incidents |
+| **Docs** | `devops-ai-stack-docs` | These pages, as Markdown, with the diagrams |
+
+Each component is its own repository and is released on its own. The Helm chart ties the three services into one release, and the GitOps repository decides what runs in each cluster.
 
 ## By the numbers
 
-| | |
+The size of what the agent can do, and the limits it works within:
+
+| Number | What it counts |
 |---|---|
 | **63** | tools the agent can use (55 read-only, 8 write) |
 | **24** | built-in playbooks for specific failure modes |
@@ -307,7 +337,9 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 
 ## Scope
 
-| | |
+What this project is, and what it deliberately is not yet:
+
+| Aspect | Description |
 |---|---|
 | **Personal initiative** | Built on personal time and resources |
 | **Built with Claude Code** | "Vibe coded", but guided by SDLC best practice and reviewed from a DevOps engineer's point of view |
@@ -315,6 +347,8 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 | **Built for real workflows** | Designed around common incident-handling use cases and the security policies enterprises work under |
 
 ## Read next
+
+Each child page goes deeper into one part. Pick the one that matches what you need:
 
 | If you want to… | Read |
 |---|---|
@@ -327,6 +361,8 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 
 ## Glossary
 
+Terms used across these pages:
+
 | Term | Meaning |
 |---|---|
 | **RCA** | Root Cause Analysis — the structured answer the agent posts for an incident |
@@ -336,3 +372,8 @@ The agent publishes each LLM request to an SQS FIFO queue. The **llm-worker**, i
 | **Playbook** | A Markdown guide for one kind of failure, loaded into the model's context when the symptom matches |
 | **Light / heavy route** | The LLM router's two tiers: a cheap model for casual questions, a strong one for alerts and fixes |
 | **Approval card** | The Slack message with *Approve / Reject* buttons that every change must pass through |
+| **Dry-run** | The write tool run with `dry_run=true`: the Kubernetes API validates the change without applying it |
+| **GitOps / Flux** | Git holds the desired state of the cluster, and Flux applies it. A fix to a Flux-managed workload is therefore a pull request, not a live patch |
+| **Verdict** | The agent's check about 5 minutes after a fix: `recovered`, `unchanged`, `worse` or `inconclusive` |
+| **Trace** | In Jaeger, the end-to-end record of one investigation across the three services, made of timed spans |
+| **SQS** | AWS Simple Queue Service, the outbound-only message queue that connects the agent to the private network |

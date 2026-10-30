@@ -25,7 +25,7 @@ A neighbouring alert that shares the cause, such as an upstream service failing,
 
 ## Talking to the agent
 
-Mention the bot. Users on the allowlist can, and so can the on-call and approver users; others get a private "not allowed" note.
+You can ask the agent anything about the cluster, in a thread or in a new message. Mention the bot. Users on the allowlist can, and so can the on-call and approver users; others get a private "not allowed" note.
 
 | You write | What happens |
 |---|---|
@@ -71,6 +71,8 @@ When the thread reaches the real conclusion — "it was the `ORDER_RESPONSE_VERS
 A human-confirmed cause (`learn`) outranks the agent's own RCA. The Summary and Action items are posted in the thread, with a link to the full draft on the dashboard (also downloadable as Markdown).
 
 ## Tips
+
+A few habits that get better answers, faster:
 
 - **Your phone is enough.** No laptop, VPN or kubeconfig is needed: ask in the thread, and approve from the card.
 - **Ask in the alert's thread.** The agent then knows which alert and namespace you mean.

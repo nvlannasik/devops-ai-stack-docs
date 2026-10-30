@@ -4,6 +4,8 @@
 
 ## The pipeline
 
+From the moment Alertmanager calls the webhook to the moment a fix is proposed, every alert goes through the same nine steps:
+
 ![How an investigation works](diagrams/investigation/investigation.png)
 
 *Diagram made with archify. Interactive version: `diagrams/investigation/investigation.html`; vector: `diagrams/investigation/investigation.svg`.*
@@ -96,6 +98,8 @@ If any part of the card is rejected by Slack, the agent retries without the tabl
 Every run — LLM turns, tool calls and gate decisions — is written to `agent_events`. Recorded production runs can be **replayed** offline through the current code as regression tests, and a **benchmark** of fault scenarios (built on the sample apps) measures any change before it ships.
 
 ## Other modes
+
+Not every request is an alert. A mention can also start one of these, each with its own budget and output format:
 
 | Mode | Trigger | Difference |
 |---|---|---|

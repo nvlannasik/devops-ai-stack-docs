@@ -4,6 +4,8 @@
 
 ## How it is deployed
 
+Code, chart and cluster state each live in their own repository, and a change moves through them in this order:
+
 1. **Code repos** (agent, mcp-server, worker, sample-apps): a push to `main` runs GitHub Actions *Build & Push*.
    - It publishes `:latest` images.
    - The agent, mcp-server and worker images are amd64+arm64; the sample apps are arm64.
@@ -12,7 +14,7 @@
    - `clusters/<cluster>/` — the Flux bootstrap for each cluster;
    - `apps/base/` — applications (devops-ai-stack, the sample apps, loadgen) and systems (postgres, prometheus, alertmanager, loki, fluent-bit, grafana, jaeger, cert-manager, longhorn, …);
    - `apps/<env>/` — the overlay for each environment: image tags, hosts, LLM backends, users.
-4. **Flux** reconciles HelmRelease `devops-ai-stack` (chart 0.7.0) into namespace `devops-tools`.
+4. **Flux** reconciles HelmRelease `devops-ai-stack` (chart 0.8.0) into namespace `devops-tools`.
 
 - **GitOps is the source of truth.** A change to what runs in a cluster is a commit to `gitops-devops-ai-manifest`.
 - **Rolling out new code.** Images are published as `:latest`. After a push to `main` and a finished image build, roll the Deployment so it pulls the new image:
@@ -36,6 +38,8 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 
 ## Key settings — devops-ai-agent
 
+The settings below are environment variables. In the chart, most are set through the agent's values, and secrets come from an existing Kubernetes Secret through `secretEnv`. Defaults are in parentheses.
+
 | Area | Setting | Notes |
 |---|---|---|
 | Slack | `SLACK_BOT_TOKEN`, `SLACK_APP_TOKEN` (Socket Mode), `SLACK_SIGNING_SECRET` | Secrets |
@@ -47,9 +51,9 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 | SQS | `SQS_REQUEST_QUEUE_NAME`, `SQS_RESPONSE_QUEUE_NAME`, `SQS_GITOPS_REQUEST_QUEUE_NAME`, `AWS_REGION` | FIFO queues; the response queue is shared and routed by `requestId` |
 | MCP | `MCP_TRANSPORT=http`, `MCP_HTTP_URL`, `MCP_AUTH_TOKEN`, `MCP_TOOL_TIMEOUT_SECONDS` (45) | The token must match the MCP server's |
 | Storage | `MEMORY_BACKEND=redis`, `REDIS_*`; `DB_HOST`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SSL_MODE` | Incident memory is disabled if `DB_HOST` is unset |
-| Budgets | `MAX_CONCURRENT_INVESTIGATIONS` (5), `INVESTIGATION_TIMEOUT_SECONDS` (300), `MENTION_TOOL_ROUNDS` (2), `TOUR_TOOL_ROUNDS` (4) | |
+| Budgets | `MAX_CONCURRENT_INVESTIGATIONS` (5), `INVESTIGATION_TIMEOUT_SECONDS` (300), `MENTION_TOOL_ROUNDS` (2), `TOUR_TOOL_ROUNDS` (4) | How many investigations run at once, the wall clock per investigation, and the tool rounds a plain mention and a cluster tour may spend. When a budget runs out, the model answers from what it already gathered. |
 | Delegation | `SUBAGENT_ENABLED`, `SUBAGENT_MAX_FANOUT` (3), `SUBAGENT_TOOL_ROUNDS` (3), `SUBAGENT_MAX_ITERATIONS` (5) | Off unless `SUBAGENT_ENABLED=true` |
-| Remediation | `GITOPS_REMEDIATION_ENABLED`, `REMEDIATION_VERIFY_DELAY_SECONDS` (300) | |
+| Remediation | `GITOPS_REMEDIATION_ENABLED`, `REMEDIATION_VERIFY_DELAY_SECONDS` (300) | Turns on pull requests for Flux-managed workloads (needs the llm-worker's GitOps settings), and sets how long after a change the verification check runs |
 | Incidents | `INCIDENT_RECONCILE_ENABLED` and its `_MIN_AGE`, `_CONFIRM` and `_BATCH` settings | Closes incidents whose resolved webhook never arrived |
 | Dashboard | `DASHBOARD_ENABLED`, `DASHBOARD_PORT` (3001), `DASHBOARD_PASSWORD`, `DASHBOARD_PUBLIC_URL` (chart: `dashboard.publicUrl`) | Unset password ⇒ every page answers `503`. The public URL is what the postmortem links in Slack point to. |
 | Tracing | `TRACE_ENABLED` (true), `LOG_LEVEL` | The harness trace in Postgres (`agent_events`) |
@@ -57,9 +61,11 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 
 ## Key settings — devops-mcp-server
 
+The MCP server holds the cluster access, so its settings decide what the agent can read and, above all, what it can change:
+
 | Setting | Notes |
 |---|---|
-| `TRANSPORT` = `http` / `stdio` | The agent connects over `http` in a cluster |
+| `TRANSPORT` = `http` / `stdio` / `sqs` | The agent connects over `http` in its own cluster. `sqs` is the bridge for a cluster that accepts no inbound traffic: the server consumes `MCP_SQS_REQUEST_QUEUE` and answers on `devops-mcp-response.fifo`. |
 | `MCP_AUTH_TOKEN` | Required on `/mcp` |
 | `K8S_AUTH_MODE=incluster` | Uses its ServiceAccount; the chart renders the ClusterRole (get/list, plus the write verbs when write tools are enabled) |
 | `PROMETHEUS_URL`, `ALERTMANAGER_URL`, `LOKI_URL`, `TRACING_BACKEND` + `TRACING_URL` | The observability backends, each with optional basic auth |
@@ -69,6 +75,8 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 | `UPSTREAM_TIMEOUT_SECONDS` | Upper limit on any upstream call |
 
 ## Key settings — llm-worker
+
+The llm-worker runs inside the private network. Its settings name the queues it consumes, the private LLM it calls and the GitHub Enterprise it opens pull requests on:
 
 | Setting | Notes |
 |---|---|
@@ -81,6 +89,8 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 
 ## AWS authentication (SQS)
 
+Every service that uses SQS needs AWS credentials. `AWS_AUTH_MODE` picks how it gets them, depending on where it runs:
+
 | `AWS_AUTH_MODE` | Use |
 |---|---|
 | `iam-anywhere` | On-premise or private network with an X.509 certificate |
@@ -90,6 +100,8 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 
 ## Slack app setup
 
+The agent needs its own Slack app. It uses Socket Mode, so no public endpoint is required:
+
 1. Create the app at api.slack.com/apps.
 2. Bot scopes: `app_mentions:read`, `chat:write`, `channels:history`, `groups:history`, `reactions:read`.
 3. Event subscriptions: `app_mention`, `reaction_added`.
@@ -98,6 +110,8 @@ A typo therefore fails in CI or in Flux's dry-run, instead of failing at 3 a.m. 
 6. Invite the bot to the alert channel.
 
 ## Alertmanager receiver
+
+Alertmanager sends alerts to the agent through a webhook receiver. The grouping matters: one Alertmanager group is one investigation.
 
 ```yaml
 receivers:
@@ -119,9 +133,11 @@ Adjust the URL to the agent Service name in your cluster.
 ## Database
 
 - Postgres needs a database named in the release values (`auth.database`, e.g. `devops_agent`). The Bitnami chart creates it only on the **first** initialisation of an empty volume. An already-initialised volume needs a one-time manual `CREATE DATABASE`.
-- Tables are created by the agent's own migrations at startup (`001`–`015` today). A failing migration is a pod that does not start, so migrations avoid statements that need extra privileges (no `CREATE EXTENSION`).
+- Tables are created by the agent's own migrations at startup (`001`–`016` today). A failing migration is a pod that does not start, so migrations avoid statements that need extra privileges (no `CREATE EXTENSION`).
 
-## Changing behaviour without a rebuild
+## Changing behaviour without changing code
 
-- **System prompt**: `prompts/system.md`.
+The agent's instructions are plain Markdown files in its repository. Editing them changes how it investigates without touching any TypeScript. They are baked into the image, so a change still ships the usual way: push to `main`, wait for the build, then roll out the Deployment.
+
+- **System prompt**: `prompts/system.md`. It holds the investigation method, the RCA format and the rules every answer follows.
 - **Playbooks**: `prompts/skills/*.md`. Each file has flat `name`, `description` and `when` frontmatter, where `when` is `always` or a regex over the alert text. A malformed skill makes the pod refuse to start, and the test suite loads the same directory, so a bad file fails CI first.
