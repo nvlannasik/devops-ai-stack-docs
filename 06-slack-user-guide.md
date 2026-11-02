@@ -40,6 +40,18 @@ You can ask the agent anything about the cluster, in a thread or in a new messag
 
 Indonesian and English both work.
 
+## More than one cluster
+
+The agent watches more than one Kubernetes cluster (today `dev` and `stg`). Every thread is about exactly one of them, and its RCA and approval cards show which one (☸ `stg`).
+
+- **An alert** brings its cluster with it, from the alert's `cluster` label.
+- **A question** names its cluster: `@devops-agent which pods restarted on stg?`, or `cek pod di dev`. If you name none, the agent asks which one before it reads anything, and answers your original question as soon as you reply with a name.
+- **To move a thread to another cluster**, say so: `switch to dev` or `pindah ke dev`. Earlier answers in the thread stay about the previous cluster. Naming another cluster without that ("how about dev?") gets a reminder of how to switch, never an answer about the thread's own cluster.
+- **Metrics and logs** are filtered to the thread's cluster automatically, so two clusters with the same node name (`worker1`) are never mixed in one answer.
+- **Fixes on `stg`** are not proposed yet: its connection is read-only. You get the RCA, and the fix is yours to run.
+
+The agent's own short replies (the cluster question, the switch reminder) come in the language you wrote in.
+
 ## Approving a fix
 
 An approval card shows:
@@ -75,7 +87,7 @@ A human-confirmed cause (`learn`) outranks the agent's own RCA. The Summary and 
 A few habits that get better answers, faster:
 
 - **Your phone is enough.** No laptop, VPN or kubeconfig is needed: ask in the thread, and approve from the card.
-- **Ask in the alert's thread.** The agent then knows which alert and namespace you mean.
+- **Ask in the alert's thread.** The agent then knows which alert, namespace and cluster you mean.
 - **Name the namespace and workload** in a fresh question. It narrows the investigation and the tool budget goes further.
 - **Ask for one fix explicitly** ("restart checkout-gateway", "set the image to v1.4.1") if you know what you want. It still goes through the approval card.
 - **Read the confidence and the evidence**, not just the root cause. The evidence lines tell you exactly what the agent looked at.

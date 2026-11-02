@@ -91,5 +91,6 @@ Start from what you see, then check the likely cause:
 - **Pattern-based defences.** Identifier masking, secret redaction and injection framing are pattern-based, so they reduce exposure without guaranteeing it (see *Remediation and Safety Guardrails*).
 - **The RCA is a hypothesis.** Its quality depends on the LLM backend that answered; the footer always names that backend. Read the evidence and the confidence, not only the root cause.
 - **Infrastructure level only.** The agent reads the cluster and the observability data, not the application's source code. A bug inside the code is found only as far as its symptoms show in logs, metrics and traces.
+- **The dashboard shows the central cluster only.** `/cluster` reads `dev`; a view per cluster comes later.
 - **Workload clusters are read-only and untraced.** stg's bridge carries no write tools, so the agent proposes no fix there, only the RCA. GitOps pull requests are opened only for the central cluster. stg's traces stay in its own Jaeger, so trace tools find nothing for an stg thread.
 - **One fix at a time.** Each incident gets at most one proposal. A fault that needs several changes is explained in the RCA, and the rest is left to a human.
