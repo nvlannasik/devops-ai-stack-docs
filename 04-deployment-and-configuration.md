@@ -50,6 +50,7 @@ The settings below are environment variables. In the chart, most are set through
 | LLM | `LLM_MASK_IDENTIFIERS` | Default on |
 | SQS | `SQS_REQUEST_QUEUE_NAME`, `SQS_RESPONSE_QUEUE_NAME`, `SQS_GITOPS_REQUEST_QUEUE_NAME`, `AWS_REGION` | FIFO queues; the response queue is shared and routed by `requestId` |
 | MCP | `MCP_TRANSPORT=http`, `MCP_HTTP_URL`, `MCP_AUTH_TOKEN`, `MCP_TOOL_TIMEOUT_SECONDS` (45) | The token must match the MCP server's |
+| Clusters | `MCP_LOCAL_CLUSTER` (dev: `dev`), `MCP_SQS_CLUSTERS` (dev: `stg=devops-mcp-stg-request.fifo`) | The cluster registry. Either set turns on multi-cluster mode: Kubernetes and Flux tools go to the thread's cluster (its SQS bridge when remote), metrics, logs and traces to the central MCP server. Each name must equal the `cluster` label on that cluster's data. Neither set ⇒ single-cluster, as before. |
 | Storage | `MEMORY_BACKEND=redis`, `REDIS_*`; `DB_HOST`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SSL_MODE` | Incident memory is disabled if `DB_HOST` is unset |
 | Budgets | `MAX_CONCURRENT_INVESTIGATIONS` (5), `INVESTIGATION_TIMEOUT_SECONDS` (300), `MENTION_TOOL_ROUNDS` (2), `TOUR_TOOL_ROUNDS` (4) | How many investigations run at once, the wall clock per investigation, and the tool rounds a plain mention and a cluster tour may spend. When a budget runs out, the model answers from what it already gathered. |
 | Delegation | `SUBAGENT_ENABLED`, `SUBAGENT_MAX_FANOUT` (3), `SUBAGENT_TOOL_ROUNDS` (3), `SUBAGENT_MAX_ITERATIONS` (5) | Off unless `SUBAGENT_ENABLED=true` |

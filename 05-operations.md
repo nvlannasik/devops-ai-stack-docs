@@ -83,10 +83,13 @@ Start from what you see, then check the likely cause:
 | "I restarted before I could answer this" in a thread | A pod restart interrupted the work | Mention the agent again in the thread |
 | Pod won't start | An invalid `LLM_BACKEND_*` set, a malformed skill file, or a failed migration | The pod's first log lines name the cause |
 | Dashboard answers `503` | `DASHBOARD_PASSWORD` is not set | The Secret and the env var |
+| An RCA says the alert has no cluster label, confidence Low | The alert's series lack `cluster`, or name a cluster not in the registry | `count by (cluster)(up)` in Prometheus; the agent's `MCP_LOCAL_CLUSTER` / `MCP_SQS_CLUSTERS` |
+| A workload cluster's RCA has no Kubernetes data ("unreachable") | Its SQS bridge is down, or cannot sign to AWS | Agent log for `[mcp-sqs] <cluster> unreachable`; the bridge pod on that cluster. `Could not load credentials` there usually means the node's clock has drifted (IAM Roles Anywhere rejects a skew over 5 minutes). |
 
 ## Known limits
 
 - **Pattern-based defences.** Identifier masking, secret redaction and injection framing are pattern-based, so they reduce exposure without guaranteeing it (see *Remediation and Safety Guardrails*).
 - **The RCA is a hypothesis.** Its quality depends on the LLM backend that answered; the footer always names that backend. Read the evidence and the confidence, not only the root cause.
 - **Infrastructure level only.** The agent reads the cluster and the observability data, not the application's source code. A bug inside the code is found only as far as its symptoms show in logs, metrics and traces.
+- **Workload clusters are read-only and untraced.** stg's bridge carries no write tools, so the agent proposes no fix there, only the RCA. GitOps pull requests are opened only for the central cluster. stg's traces stay in its own Jaeger, so trace tools find nothing for an stg thread.
 - **One fix at a time.** Each incident gets at most one proposal. A fault that needs several changes is explained in the RCA, and the rest is left to a human.
