@@ -48,7 +48,8 @@ The agent watches more than one Kubernetes cluster (today `dev` and `stg`). Ever
 - **A question** names its cluster: `@devops-agent which pods restarted on stg?`, or `cek pod di dev`. If you name none, the agent asks which one before it reads anything, and answers your original question as soon as you reply with a name.
 - **To move a thread to another cluster**, say so: `switch to dev` or `pindah ke dev`. Earlier answers in the thread stay about the previous cluster. Naming another cluster without that ("how about dev?") gets a reminder of how to switch, never an answer about the thread's own cluster.
 - **Metrics and logs** are filtered to the thread's cluster automatically, so two clusters with the same node name (`worker1`) are never mixed in one answer.
-- **Fixes on `stg`** are not proposed yet: its connection is read-only. You get the RCA, and the fix is yours to run.
+- **Fixes on `stg`** come through the same approval card, marked with the cluster. A GitOps fix edits stg's own overlay in the repository, never dev's; if the agent cannot tell which file that is, it says so instead of guessing.
+- **The dashboard's Cluster page** has a switch for each cluster (`/cluster?cluster=stg`).
 
 The agent's own short replies (the cluster question, the switch reminder) come in the language you wrote in.
 
