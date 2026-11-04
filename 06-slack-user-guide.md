@@ -51,7 +51,7 @@ The agent watches more than one Kubernetes cluster (today `dev` and `stg`). Ever
 - **Fixes on `stg`** come through the same approval card, marked with the cluster. A GitOps fix edits stg's own overlay in the repository, never dev's; if the agent cannot tell which file that is, it says so instead of guessing.
 - **The dashboard's Cluster page** has a switch for each cluster (`/cluster?cluster=stg`).
 
-**Services on VMs.** An alert about a service on a VM (its `hostname` label names a VM running `devops-vm-agent`) is investigated from its metrics, logs and traces like any other, without Kubernetes. The one fix it can offer is restarting that service; after Approve, the VM itself runs the restart and its report (exit code, status, last journal lines) appears in the thread.
+**Services on VMs.** An alert about a service on a VM (its `hostname` label names a VM running `devops-vm-agent`) is investigated from its metrics, logs and traces like any other, without Kubernetes. The one fix it can offer is restarting that service; after Approve, the VM itself runs the restart and its report (exit code, status, last journal lines) appears in the thread. You can also ask directly: `@devops-agent restart orders.service on vm-web-01` — naming a VM binds the thread to it, and naming a cluster later moves the thread back to that cluster.
 
 The agent's own short replies (the cluster question, the switch reminder) come in the language you wrote in.
 
