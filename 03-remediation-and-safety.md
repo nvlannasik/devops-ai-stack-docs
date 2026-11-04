@@ -31,6 +31,8 @@ These are the only eight changes the agent can ever propose. Each is a typed MCP
 | `k8s_set_resources` | OOMKilled / resource exhaustion | Patches only the values given; an "OOM fix" that shrinks memory is refused |
 | `k8s_scale` | Under-capacity | Bounded by `MAX_SCALE_DELTA`. Scale to zero is allowed only as a reversible **quarantine** of a workload that a capacity scan in the same thread listed as idle. |
 | `k8s_delete_pod` | One pod is wedged while its siblings are healthy | Only controller-owned pods, which the controller recreates |
+| `k8s_cordon` / `k8s_uncordon` | A node that is itself failing (NotReady, a pressure condition, a disk or I/O fault), or a cordoned node whose fault is gone | Refused for a control-plane node and for the cluster's last schedulable node. Cordon only stops new pods landing; running pods stay. |
+| `k8s_drain` | The same node evidence, when its running pods must move | Cordon, then evict through the Eviction API: a pod protected by a PodDisruptionBudget is reported **blocked**, never deleted. DaemonSet, static and finished pods stay. Same refusals as cordon. |
 | `k8s_delete_orphan` | An object nothing references, found by a scan in the same thread | The manifest is **backed up** to Postgres and posted to the thread before the delete. The server re-checks provenance, ownership and age live. |
 | `k8s_rollout_undo` | A bad rollout on the thread's change timeline | Gated on the timeline. The target revision is chosen by code, never by the model, and an Approve after the Deployment has moved is rejected atomically. |
 | `flux_reconcile` | **Drift**: the cluster runs something other than what Git declares | Restores what Git declares |

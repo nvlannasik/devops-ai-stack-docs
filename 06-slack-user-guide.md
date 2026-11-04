@@ -59,7 +59,8 @@ An approval card shows:
 - **the one action** proposed, for example *restart deployment `sample-apps/checkout-gateway`*;
 - why it was proposed;
 - what changes, from → to;
-- for GitOps-managed workloads, the **pull request diff**.
+- for GitOps-managed workloads, the **pull request diff**;
+- for a node (cordon, uncordon, drain), the node name, and after a drain how many pods were evicted, blocked by a PodDisruptionBudget, and left in place.
 
 - Only the configured **approvers** can click ✅ *Approve* or 🚫 *Reject*. The card mentions them.
 - Cards **expire after 15 minutes**. An expired card cannot be executed.
