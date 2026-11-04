@@ -57,7 +57,7 @@ How to read the diagram:
 - **Agent → LLMs.** Hosted backends are called directly. A private LLM is reached through SQS and the llm-worker.
 - **Agent → Postgres and Redis.** Long-term incident memory and short-term conversation memory.
 - **llm-worker → GitHub Enterprise.** Pull requests for GitOps fixes, from inside the private network.
-- **More than one cluster.** `dev` is the central cluster: it runs the agent stack and the observability it queries. A workload cluster (`stg`) ships its metrics and logs to dev, labelled `cluster=stg`, and accepts no inbound traffic: the agent reaches its Kubernetes through an SQS bridge (`devops-mcp-server` with `TRANSPORT=sqs`) running there, which also carries the approved fixes. GitOps pull requests for stg edit stg's own overlay (`apps/stg/...`) in the same repository. Every thread, card and incident belongs to one cluster, shown on the RCA and approval cards.
+- **More than one cluster.** `dev` is the central cluster: it runs the agent stack and the observability it queries. A workload cluster (`stg`) ships its metrics and logs to dev, labelled `cluster=stg`, and the agent reaches its Kubernetes by calling the `devops-mcp-server` running there over HTTP across the LAN (in production, a peered network), which also carries the approved fixes. A cluster that accepts no inbound traffic can use an SQS bridge (`TRANSPORT=sqs`) instead. GitOps pull requests for stg edit stg's own overlay (`apps/stg/...`) in the same repository. Every thread, card and incident belongs to one cluster, shown on the RCA and approval cards.
 
 Everything is deployed by **Flux** from `gitops-devops-ai-manifest`. The three services ship as **one Helm release** (`devops-ai-stack` umbrella chart), in namespace `devops-tools`.
 

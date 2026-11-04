@@ -84,7 +84,7 @@ Start from what you see, then check the likely cause:
 | Pod won't start | An invalid `LLM_BACKEND_*` set, a malformed skill file, or a failed migration | The pod's first log lines name the cause |
 | Dashboard answers `503` | `DASHBOARD_PASSWORD` is not set | The Secret and the env var |
 | An RCA says the alert has no cluster label, confidence Low | The alert's series lack `cluster`, or name a cluster not in the registry | `count by (cluster)(up)` in Prometheus; the agent's `MCP_LOCAL_CLUSTER` / `MCP_SQS_CLUSTERS` |
-| A workload cluster's RCA has no Kubernetes data ("unreachable") | Its SQS bridge is down, or cannot sign to AWS | Agent log for `[mcp-sqs] <cluster> unreachable`; the bridge pod on that cluster. `Could not load credentials` there usually means the node's clock has drifted (IAM Roles Anywhere rejects a skew over 5 minutes). |
+| A workload cluster's RCA has no Kubernetes data ("unreachable") | Its MCP server is down or not reachable (HTTP), or its SQS bridge cannot sign to AWS | Agent log for `[mcp-http] <cluster> still unreachable` (HTTP: `curl http://<node>:30300/health` from the central cluster) or `[mcp-sqs] <cluster> unreachable` (SQS: an expired IAM Roles Anywhere certificate or a drifted clock shows as `Could not load credentials` in the bridge pod). |
 
 ## Known limits
 
