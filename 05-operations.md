@@ -10,7 +10,7 @@ Four checks tell you whether the stack is up and running the code you expect:
 |---|---|
 | Agent readiness | `GET /health` on port 3000 → `{"ok":true,"checks":{"mcp":"up","postgres":"up","redis":"up"}}`. It returns `503` when a configured dependency is down, so Kubernetes stops routing to that pod. |
 | Running build | `kubectl -n devops-tools exec deploy/devops-ai-agent -- printenv GIT_SHA` |
-| Tools discovered | Agent boot log: `Discovered 63 MCP tools` (55 read + 8 write) |
+| Tools discovered | Agent boot log: `Discovered 66 MCP tools` (55 read + 11 write) |
 | Memory | Boot log: `Redis connected …` and `Incident memory: Postgres …` |
 
 ## The dashboard

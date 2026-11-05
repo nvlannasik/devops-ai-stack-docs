@@ -19,7 +19,7 @@ A Node.js 26 / TypeScript service. One process holds:
 ### devops-mcp-server (the tools)
 An MCP server over HTTP (`/mcp`, bearer token), stdio, or SQS (`TRANSPORT=sqs`, for a cluster that accepts no inbound traffic). It is the only component that talks to the Kubernetes API and the observability backends. Tools are **auto-discovered** by the agent: a new tool needs no agent change.
 
-The 63 tools by domain:
+The 66 tools by domain:
 
 | Domain | Count | Examples |
 |---|---|---|
@@ -29,7 +29,7 @@ The 63 tools by domain:
 | Loki | 6 | `loki_query`, `loki_query_range`, labels, streams |
 | Tracing | 3 | `tracing_search`, `tracing_get_trace` (Tempo or Jaeger) |
 | Capacity | 2 | `k8s_find_unused_resources`, `k8s_recommend_resources` |
-| **Write** | 8 | `k8s_rollout_restart`, `k8s_set_image`, `k8s_set_resources`, `k8s_scale`, `k8s_delete_pod`, `k8s_delete_orphan`, `k8s_rollout_undo`, `flux_reconcile`. Registered only with `MCP_ENABLE_WRITE_TOOLS=true`, and limited to `ALLOWED_REMEDIATION_NAMESPACES` |
+| **Write** | 11 | `k8s_rollout_restart`, `k8s_set_image`, `k8s_set_resources`, `k8s_scale`, `k8s_delete_pod`, `k8s_delete_orphan`, `k8s_rollout_undo`, `flux_reconcile`, and for nodes `k8s_cordon`, `k8s_uncordon`, `k8s_drain`. Registered only with `MCP_ENABLE_WRITE_TOOLS=true`; the workload ones are limited to `ALLOWED_REMEDIATION_NAMESPACES` |
 
 An empty result is always **explained** (for example `noLogLines: true` with a verdict), never a bare `[]`. This keeps "the query was wrong" distinguishable from "nothing happened".
 

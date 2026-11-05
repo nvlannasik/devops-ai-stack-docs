@@ -14,7 +14,7 @@ Code, chart and cluster state each live in their own repository, and a change mo
    - `clusters/<cluster>/` — the Flux bootstrap for each cluster;
    - `apps/base/` — applications (devops-ai-stack, the sample apps, loadgen) and systems (postgres, prometheus, alertmanager, loki, fluent-bit, grafana, jaeger, cert-manager, longhorn, …);
    - `apps/<env>/` — the overlay for each environment: image tags, hosts, LLM backends, users.
-4. **Flux** reconciles HelmRelease `devops-ai-stack` (chart 0.8.0) into namespace `devops-tools`.
+4. **Flux** reconciles HelmRelease `devops-ai-stack` (chart 0.8.1) into namespace `devops-tools`.
 
 - **GitOps is the source of truth.** A change to what runs in a cluster is a commit to `gitops-devops-ai-manifest`.
 - **Rolling out new code.** Images are published as `:latest`. After a push to `main` and a finished image build, roll the Deployment so it pulls the new image:
@@ -51,6 +51,7 @@ The settings below are environment variables. In the chart, most are set through
 | SQS | `SQS_REQUEST_QUEUE_NAME`, `SQS_RESPONSE_QUEUE_NAME`, `SQS_GITOPS_REQUEST_QUEUE_NAME`, `AWS_REGION` | FIFO queues; the response queue is shared and routed by `requestId` |
 | MCP | `MCP_TRANSPORT=http`, `MCP_HTTP_URL`, `MCP_AUTH_TOKEN`, `MCP_TOOL_TIMEOUT_SECONDS` (45) | The token must match the MCP server's |
 | Clusters | `MCP_LOCAL_CLUSTER` (dev: `dev`), `MCP_HTTP_CLUSTERS` (dev: `stg=http://10.10.10.105:30300/mcp`), `MCP_SQS_CLUSTERS` (for a cluster that accepts no inbound traffic) | The cluster registry. Either set turns on multi-cluster mode: Kubernetes and Flux tools go to the thread's cluster (over HTTP, or its SQS bridge, when remote), metrics, logs and traces to the central MCP server. Each name must equal the `cluster` label on that cluster's data. Neither set ⇒ single-cluster, as before. |
+| VMs | `VM_AGENT_TOKENS` (`vm-web-01=<token>,…`, from Secret `devops-vm-agent-tokens`), `VM_HOST_LABEL` (`hostname`) | Unset ⇒ no `/vm/*` routes and no VM restart. Each VM runs `devops-vm-agent`, installed with `vm-agent/install.sh` in the agent repo; its name must equal its token's name and its `hostname` label. |
 | Storage | `MEMORY_BACKEND=redis`, `REDIS_*`; `DB_HOST`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD`, `DB_SSL_MODE` | Incident memory is disabled if `DB_HOST` is unset |
 | Budgets | `MAX_CONCURRENT_INVESTIGATIONS` (5), `INVESTIGATION_TIMEOUT_SECONDS` (300), `MENTION_TOOL_ROUNDS` (2), `TOUR_TOOL_ROUNDS` (4) | How many investigations run at once, the wall clock per investigation, and the tool rounds a plain mention and a cluster tour may spend. When a budget runs out, the model answers from what it already gathered. |
 | Delegation | `SUBAGENT_ENABLED`, `SUBAGENT_MAX_FANOUT` (3), `SUBAGENT_TOOL_ROUNDS` (3), `SUBAGENT_MAX_ITERATIONS` (5) | Off unless `SUBAGENT_ENABLED=true` |
@@ -70,8 +71,8 @@ The MCP server holds the cluster access, so its settings decide what the agent c
 | `MCP_AUTH_TOKEN` | Required on `/mcp` |
 | `K8S_AUTH_MODE=incluster` | Uses its ServiceAccount; the chart renders the ClusterRole (get/list, plus the write verbs when write tools are enabled) |
 | `PROMETHEUS_URL`, `ALERTMANAGER_URL`, `LOKI_URL`, `TRACING_BACKEND` + `TRACING_URL` | The observability backends, each with optional basic auth |
-| `MCP_ENABLE_WRITE_TOOLS` | Registers the 8 write tools |
-| `ALLOWED_REMEDIATION_NAMESPACES` | Namespaces the write tools may touch. **Empty = all blocked.** |
+| `MCP_ENABLE_WRITE_TOOLS` | Registers the 11 write tools |
+| `ALLOWED_REMEDIATION_NAMESPACES` | Namespaces the workload write tools may touch. **Empty = all blocked.** The node tools are cluster-scoped and need the chart's `rbac.allowNodeOps` instead. |
 | `MAX_SCALE_DELTA`, `MIN_ORPHAN_AGE_DAYS` | Bounds on scaling and orphan deletion |
 | `UPSTREAM_TIMEOUT_SECONDS` | Upper limit on any upstream call |
 

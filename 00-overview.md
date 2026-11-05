@@ -209,6 +209,7 @@ The agent does the digging an engineer would otherwise do by hand: it reads the 
 - **Parallel sub-investigations.** When one alert group spans several services, each service gets its own sub-investigation.
 - **24 built-in playbooks**, for example OOMKilled, CrashLoopBackOff, ImagePullBackOff, high error rate, high latency, GitOps drift, certificate expiry and log alerts. They are chosen from the alert *and* from the evidence the agent finds along the way.
 - **Conversational follow-ups** in the same thread: "show me the logs", "when did this start?".
+- **More than one cluster.** Each thread is held to one cluster: the agent asks which one when you do not say, and refuses to answer one cluster's question with another's data.
 
 ### 🧠 Remember
 Every incident leaves something behind, so the next one does not start from zero.
@@ -222,7 +223,7 @@ Every incident leaves something behind, so the next one does not start from zero
 
 ### 🛡️ Fix — safely
 The agent may suggest a fix, but it never applies one on its own. Code checks the proposal first, and then a human decides.
-- **One proposal, from a short whitelist:** restart, set image, set resources, scale, delete one pod, roll back, back up and delete an orphan, Flux reconcile.
+- **One proposal, from a short whitelist:** restart, set image, set resources, scale, delete one pod, roll back, back up and delete an orphan, Flux reconcile, cordon / uncordon / drain a node, and restart a systemd service on a VM (pulled by the VM's own agent, never pushed over SSH).
 - **A chain of automated checks before a card even appears**, then a server-side dry-run, then a **human click**.
 - **GitOps-aware.** For Flux-managed workloads, the fix becomes a **pull request** (or a revert PR) instead of a live patch that the next reconcile would undo.
 - **Verified afterwards.** About 5 minutes after the change it posts `recovered`, `unchanged`, `worse` or `inconclusive`, and remembers the verdict.
@@ -314,7 +315,7 @@ Three services share the work. The **agent** decides what to do, the **MCP serve
 | Component | Repository | Role |
 |---|---|---|
 | **devops-ai-agent** | `devops-ai-agent` | The brain: Slack bot, alert intake, investigation loop, safety gates, remediation, dashboard |
-| **devops-mcp-server** | `devops-mcp-server` | The hands: 55 read-only tools and 8 guarded write tools over the Model Context Protocol |
+| **devops-mcp-server** | `devops-mcp-server` | The hands: 55 read-only tools and 11 guarded write tools over the Model Context Protocol |
 | **llm-worker** | `devops-ai-agent-worker` | The bridge into the private network: private LLM and GitHub Enterprise, outbound-only |
 | **Helm chart** | `devops-ai-helm-charts` | One release for all three, refusing to render if their shared settings disagree |
 | **GitOps manifests** | `gitops-devops-ai-manifest` | Flux + Kustomize, the source of truth for what runs |
@@ -329,9 +330,9 @@ The size of what the agent can do, and the limits it works within:
 
 | Number | What it counts |
 |---|---|
-| **63** | tools the agent can use (55 read-only, 8 write) |
+| **66** | tools the MCP server offers (55 read-only, 11 write), plus the agent's own VM restart |
 | **24** | built-in playbooks for specific failure modes |
-| **8** | whitelisted remediation actions, each reversible or backed up first — no generic "run anything" |
+| **12** | whitelisted remediation actions, each dry-run first — no generic "run anything" |
 | **15 min** | lifetime of an approval card |
 | **~5 min** | from an approved fix to its verified verdict |
 
@@ -343,7 +344,7 @@ What this project is, and what it deliberately is not yet:
 |---|---|
 | **Personal initiative** | Built on personal time and resources |
 | **Built with Claude Code** | "Vibe coded", but guided by SDLC best practice and reviewed from a DevOps engineer's point of view |
-| **Focused scope** | Kubernetes observability at the **infrastructure** level, not yet at the application-code level |
+| **Focused scope** | Kubernetes observability at the **infrastructure** level, across several clusters, plus service restarts on VMs; not yet at the application-code level |
 | **Built for real workflows** | Designed around common incident-handling use cases and the security policies enterprises work under |
 
 ## Read next

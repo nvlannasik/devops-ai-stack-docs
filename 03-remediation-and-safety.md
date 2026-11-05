@@ -22,7 +22,7 @@ A fix passes through three layers, and any one of them can stop it:
 
 ## Whitelisted actions
 
-These are the only eight changes the agent can ever propose. Each is a typed MCP write tool, not a free-form command:
+These are the only twelve changes the agent can ever propose. Each is a typed write tool (`vm_restart_service` is the agent's own, served to the VM it names), not a free-form command:
 
 | Action | When it is proposed | Extra guardrails |
 |---|---|---|
@@ -38,7 +38,7 @@ These are the only eight changes the agent can ever propose. Each is a typed MCP
 | `k8s_rollout_undo` | A bad rollout on the thread's change timeline | Gated on the timeline. The target revision is chosen by code, never by the model, and an Approve after the Deployment has moved is rejected atomically. |
 | `flux_reconcile` | **Drift**: the cluster runs something other than what Git declares | Restores what Git declares |
 
-There is deliberately **no generic delete or arbitrary patch**. Every action is reversible, or backed up before it runs.
+There is deliberately **no generic delete, arbitrary patch or remote shell**. Every action is reversible, or backed up before it runs.
 
 ## The gate chain
 
