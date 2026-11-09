@@ -5,3 +5,6 @@ diagrams/**/*.browser-check.json
 diagrams/**/*.delivery.json
 diagrams/**/*.delivery-pending.json
 diagrams/**/review-*/
+
+# Serena (local code-assistant config/cache)
+.serena/
