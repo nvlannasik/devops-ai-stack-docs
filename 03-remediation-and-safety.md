@@ -28,7 +28,7 @@ These are the only twelve changes the agent can ever propose. Each is a typed wr
 |---|---|---|
 | `k8s_rollout_restart` | A transient fault that a clean restart plausibly fixes | Refused when the pods are healthy, or when a restart cannot fix the cause (e.g. RBAC `forbidden`) |
 | `k8s_set_image` | The image is wrong or missing **and** evidence names a working one, or a user asks for a specific tag | Never invents a tag; refused if no tool result shows the target image |
-| `k8s_set_resources` | OOMKilled / resource exhaustion | Patches only the values given; an "OOM fix" that shrinks memory is refused |
+| `k8s_set_resources` | OOMKilled / resource exhaustion | Patches only the values given. An "OOM fix" that lowers the memory limit, keeps it, or raises it by less than the capacity tool recommends for a killed container is refused |
 | `k8s_scale` | Under-capacity | Bounded by `MAX_SCALE_DELTA`. Scale to zero is allowed only as a reversible **quarantine** of a workload that a capacity scan in the same thread listed as idle. |
 | `k8s_delete_pod` | One pod is wedged while its siblings are healthy | Only controller-owned pods, which the controller recreates |
 | `k8s_cordon` / `k8s_uncordon` | A node that is itself failing (NotReady, a pressure condition, a disk or I/O fault), or a cordoned node whose fault is gone | Refused for a control-plane node and for the cluster's last schedulable node. Cordon only stops new pods landing; running pods stay. |
@@ -51,7 +51,7 @@ Every proposal is checked by code before a card can appear. One chain (`refusalF
 | Check | What it refuses | Skipped for a human's own request? |
 |---|---|---|
 | **Kind** | A target named with the wrong kind, for example a ReplicaSet or a StatefulSet proposed as a Deployment. It runs first, because every later check reads the spec by kind. | No |
-| **Replacement and no-op** | A restart or pod delete that cannot help: the pods are healthy and nothing names them as the fault, the kubelet has already restarted them many times, or the error is RBAC `forbidden`. Also a change that changes nothing: the image already running, or the resources already configured. | Yes |
+| **Replacement and no-op** | A restart or pod delete that cannot help: the pods are healthy and nothing names them as the fault, the restart is argued from a failing probe while every pod is Ready with zero restarts, the kubelet has already restarted them many times, or the error is RBAC `forbidden`. Also a change that changes nothing: the image already running, or the resources already configured. And a memory limit for an OOMKilled container below the limit-based number from `k8s_recommend_resources` — usage read before a kill is capped by the limit, so it is not the peak. | Yes |
 | **Quarantine** | A scale to zero of a workload that no capacity scan in this thread measured as idle | No |
 | **Orphan** | A delete of an object that no unused-resource scan in this thread listed as an orphan | No |
 | **Rollback** | A rollback with no matching change on the thread's change timeline. The target revision is chosen by code, never by the model. | No |
