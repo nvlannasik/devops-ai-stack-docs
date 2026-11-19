@@ -26,6 +26,7 @@ In short:
 - **Asynchronous webhook.** `/alert` returns `200` immediately and the investigation runs in the background, so Alertmanager never times out and retries.
 - **One group, one thread.** Alertmanager is configured with `group_by: [alertname, namespace]`. Ten crash-looping pods of one alert become one thread, one investigation and one approval card. The group's text lists the distinct services and pods it covers.
 - **Deduplication.** The same alert group is processed once per 12 hours. A *resolved* webhook releases the claim, so the next real firing gets a fresh investigation.
+- **A flapping alert reopens its old thread.** When an alert fires again within 60 minutes of resolving, with the same labels, the agent posts **🔁 Fired again** in the old thread and marks the incident open again, instead of a new thread and a new investigation.
 - **Cross-alert correlation.** Suppose a new alert group's service is the same as, or one call-graph edge away from, an unresolved incident in the same namespace that started within the last 30 minutes. The call graph comes from `http_client_requests_total{service,peer}`. In that case the alert is posted as **🔗 Related alert** into the existing thread instead of opening a new one. It is stored as a child of that incident and gets no card of its own. Any failure here falls back to the normal path.
 - **Mentions** are accepted from `SLACK_ALLOWED_USERS`, plus the on-call and approver users; anyone else gets an ephemeral refusal. An empty allowlist lets anyone in a channel the bot is in, with a warning at boot.
 
@@ -60,6 +61,13 @@ In short:
 - **Sub-agent delegation** (`SUBAGENT_ENABLED`). When an alert group names two or more services, the lead investigation may delegate one hypothesis per service (up to 3) to sub-investigations that run in parallel. Each reports SUPPORTED, CONTRADICTED or UNPROVEN back to the lead.
 - **Prompt-injection framing.** Any tool result containing instruction-like text — for example an imperative naming one of the agent's own tools — is logged and framed as data. It is not dropped: it stays quotable as evidence.
 
+### Node incidents
+
+A node alert (MemoryPressure, DiskPressure, NotReady, evictions) follows the `node-pressure` playbook:
+- **Which trigger fired.** The kubelet raises MemoryPressure when the host is within its eviction threshold **or** when pods come within it of the node's *allocatable* memory — the second fires with hundreds of MiB still free on the host. `k8s_node_pods` reports both: the host's memory and the pods' working set against allocatable.
+- **What runs outside pods.** When the node's usage is well above its pods' working set, the gap is the OS, kubelet, containerd — and on these control planes etcd, a systemd service. `node_host_snapshot` names those processes and their memory; the RCA must name them with their numbers.
+- **Control planes.** The controller-manager and scheduler leaders and the API VIP (Leases) make one master heavier than its peers, and the load moves when they do. A control-plane node is never cordoned, drained or restarted as the fix; the fix is capacity.
+
 ## 6. Gates on the answer
 
 Prompt rules alone do not hold on every model, so the important rules are enforced in code:
@@ -73,6 +81,7 @@ Prompt rules alone do not hold on every model, so the important rules are enforc
 | Confidence cap | High confidence while admitting the logs could not be read | Capped to Medium |
 | Template echo, fabricated note | Placeholders left unfilled; a fake `[system note]` claiming an action ran | Removed |
 | Runbook | A mutating `kubectl`/`helm`/`flux` command in the RCA's runbook section | Removed. Only read-only commands may appear. |
+| Scope decline | An alert answered with "this is out of scope" | One more round to investigate it. If it declines again, the reply says the investigation failed instead — an alert is never called out of scope. |
 | Grounding | A resource name that no tool result ever returned | A separate warning message is posted in the thread |
 
 Every gate decision is recorded and visible per run on the dashboard's `/harness` page.

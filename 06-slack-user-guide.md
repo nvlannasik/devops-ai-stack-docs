@@ -53,6 +53,10 @@ The agent watches more than one Kubernetes cluster (today `dev` and `stg`). Ever
 
 **Services on VMs.** An alert about a service on a VM (its `hostname` label names a VM running `devops-vm-agent`) is investigated from its metrics, logs and traces like any other, without Kubernetes. The one fix it can offer is restarting that service; after Approve, the VM itself runs the restart and its report (exit code, status, last journal lines) appears in the thread. You can also ask directly: `@devops-agent restart orders.service on vm-web-01` — naming a VM binds the thread to it, and naming a cluster later moves the thread back to that cluster.
 
+**Node alerts.** A MemoryPressure or DiskPressure RCA names what uses the node, inside pods and outside them (etcd, kubelet, containerd), with numbers, and says whether the host ran out or the pods reached the node's allocatable memory. On a control-plane node the fix is the machine's capacity: if an RCA there ever suggests a cordon or drain, the agent adds ":no_entry: Do not cordon or drain" in the thread — follow that, not the suggestion.
+
+**An alert that fires again** within an hour of resolving reopens its old thread with **🔁 Fired again** instead of starting a new investigation; the earlier analysis in that thread still applies.
+
 The agent's own short replies (the cluster question, the switch reminder) come in the language you wrote in.
 
 ## Approving a fix

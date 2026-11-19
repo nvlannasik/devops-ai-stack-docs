@@ -210,6 +210,7 @@ The agent does the digging an engineer would otherwise do by hand: it reads the 
 - **24 built-in playbooks**, for example OOMKilled, CrashLoopBackOff, ImagePullBackOff, high error rate, high latency, GitOps drift, certificate expiry and log alerts. They are chosen from the alert *and* from the evidence the agent finds along the way.
 - **Conversational follow-ups** in the same thread: "show me the logs", "when did this start?".
 - **More than one cluster.** Each thread is held to one cluster: the agent asks which one when you do not say, and refuses to answer one cluster's question with another's data.
+- **Down to the host.** A small agent on every node reports what runs outside Kubernetes — etcd, kubelet, containerd — so a node's memory pressure is explained by name and number, not as "something outside the pods".
 
 ### 🧠 Remember
 Every incident leaves something behind, so the next one does not start from zero.
@@ -239,6 +240,7 @@ What the agent did, what it cost and how well it worked are all visible, not tak
   - incidents, remediation verdicts and **LLM cost per incident**;
   - every safety gate's activity;
   - the cluster map;
+  - every host, by cluster, with its memory, disk and what holds them;
   - what the agent remembers.
 - **Every run recorded and replayable.** A change to the agent is tested against real past incidents before it ships.
 - **Distributed tracing of the agent itself.** One investigation is one trace in Jaeger, across the agent, the MCP server and the llm-worker, so a slow answer shows exactly where the time went.
@@ -330,7 +332,7 @@ The size of what the agent can do, and the limits it works within:
 
 | Number | What it counts |
 |---|---|
-| **66** | tools the MCP server offers (55 read-only, 11 write), plus the agent's own VM restart |
+| **67** | tools the MCP server offers (56 read-only, 11 write), plus two of the agent's own: the host snapshot and the VM restart |
 | **24** | built-in playbooks for specific failure modes |
 | **12** | whitelisted remediation actions, each dry-run first — no generic "run anything" |
 | **15 min** | lifetime of an approval card |

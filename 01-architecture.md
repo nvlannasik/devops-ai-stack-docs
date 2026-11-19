@@ -14,12 +14,13 @@ A Node.js 26 / TypeScript service. One process holds:
 - **Remediation flow**: proposal → gate chain → dry-run → approval card → execution → verification poller.
 - **Incident lifecycle**: stores RCAs, handles resolved alerts, runs a sweeper for resolves that never arrived, and handles `learn`, `postmortem` and status commands.
 - **Dashboard**: a read-only second HTTP listener (port `3001`).
+- **Host agent endpoints** `POST /vm/heartbeat`, `/vm/actions/claim`, `/vm/actions/<id>/result` (per-host bearer tokens): the side of `devops-vm-agent` that lives in the agent. It also serves the host snapshots to the investigation as the tool `node_host_snapshot`.
 - **Readiness** `GET /health`: `503` when MCP, Postgres or Redis is unreachable.
 
 ### devops-mcp-server (the tools)
 An MCP server over HTTP (`/mcp`, bearer token), stdio, or SQS (`TRANSPORT=sqs`, for a cluster that accepts no inbound traffic). It is the only component that talks to the Kubernetes API and the observability backends. Tools are **auto-discovered** by the agent: a new tool needs no agent change.
 
-The 66 tools by domain:
+The 67 tools by domain:
 
 | Domain | Count | Examples |
 |---|---|---|
@@ -28,12 +29,22 @@ The 66 tools by domain:
 | Alertmanager | 1 | `alertmanager_get_alerts` — the only source of truth for "what is firing" |
 | Loki | 6 | `loki_query`, `loki_query_range`, labels, streams |
 | Tracing | 3 | `tracing_search`, `tracing_get_trace` (Tempo or Jaeger) |
-| Capacity | 2 | `k8s_find_unused_resources`, `k8s_recommend_resources` |
+| Capacity | 3 | `k8s_find_unused_resources`, `k8s_recommend_resources`, `k8s_node_pods` — every pod on one node with its live working set, the node's real memory and disk, the pods' working set against allocatable, and the pods the kubelet evicted |
 | **Write** | 11 | `k8s_rollout_restart`, `k8s_set_image`, `k8s_set_resources`, `k8s_scale`, `k8s_delete_pod`, `k8s_delete_orphan`, `k8s_rollout_undo`, `flux_reconcile`, and for nodes `k8s_cordon`, `k8s_uncordon`, `k8s_drain`. Registered only with `MCP_ENABLE_WRITE_TOOLS=true`; the workload ones are limited to `ALLOWED_REMEDIATION_NAMESPACES` |
 
 An empty result is always **explained** (for example `noLogLines: true` with a verdict), never a bare `[]`. This keeps "the query was wrong" distinguishable from "nothing happened".
 
 Every tool result has its **secret values masked** before it leaves the server: env values and keys named like secrets, the value after a `--token` or `--password` argument, and token-shaped text such as JWTs and Bearer headers. Secret names and references are kept, because the agent reasons about them.
+
+The agent adds two tools of its own, served from its database rather than the MCP server: `node_host_snapshot` (read) and `vm_restart_service` (write) — see *devops-vm-agent* below.
+
+### devops-vm-agent (the host agent)
+A small Python service (standard library only) that runs as a **systemd service on each machine**: every Kubernetes node, and any VM outside a cluster. It never accepts a connection; it calls the agent:
+- **Every minute, a heartbeat** with a read-only **host snapshot**: memory (available, anonymous, cache, swap), the largest processes by RSS with the systemd unit or `kubepods` cgroup each runs in, memory per systemd service, all pods' memory together, root disk and load. Process names only, never command lines. This is how the agent sees what runs **outside** pods — on these control planes etcd is a systemd service, not a pod.
+- **Every 10 seconds, a claim** for an approved restart, which it runs only for a unit in its own local allowlist (empty on Kubernetes nodes: the agent does not restart node services).
+- Since version 4 it says **which cluster it is a node of and its node name**, so hosts from several clusters, and standalone VMs, are kept apart.
+
+The cluster's own nodes reach the agent over the LAN (`http://10.10.10.200/vm/`, ingress-nginx's address); a VM elsewhere uses the public host. The nodes get it from the `homelab-k8s` Ansible playbook `devops-vm-agent.yml`, pinned to a commit with checksums.
 
 ### llm-worker (the private-network bridge)
 An SQS consumer that runs **inside the private network** and needs **outbound access to AWS SQS only**. It bridges two things:
@@ -67,8 +78,8 @@ The agent keeps state in two stores, each for a different kind of memory:
 
 | Store | What it holds | Lifetime |
 |---|---|---|
-| **Postgres** | `incidents` (RCA, labels, change timeline, parent/child correlation), `incident_feedback` (human-confirmed causes), `remediations` (proposal, approval, result, backup), `remediation_checks` (verification due dates and verdicts), `llm_usage` (tokens per call and backend), `agent_events` (the full trace of every run), `postmortems` | Durable. The schema is applied by versioned migrations at pod startup (advisory-locked). |
-| **Redis** | `conv:*` conversation history per Slack thread, `rca:*` "RCA already sent" flag, `skills:*` the playbooks a thread carries, `dedup:*` alert fingerprints, `inflight:*` alert investigations still running, so every replica can correlate against them, `threadlock:*` which replica is running a thread's turn, so one conversation never runs on two pods at once | 24h conversation TTL; 12h dedup claims; 15m in-flight entries; 60s renewed thread leases |
+| **Postgres** | `incidents` (RCA, labels, change timeline, parent/child correlation), `incident_feedback` (human-confirmed causes), `remediations` (proposal, approval, result, backup), `remediation_checks` (verification due dates and verdicts), `llm_usage` (tokens per call and backend), `agent_events` (the full trace of every run), `postmortems`, `vm_hosts` (each host agent's latest heartbeat, host snapshot, cluster and node name), `vm_actions` (approved host restarts and their results) | Durable. The schema is applied by versioned migrations at pod startup (advisory-locked). |
+| **Redis** | `conv:*` conversation history per Slack thread, `rca:*` "RCA already sent" flag, `skills:*` the playbooks a thread carries, `dedup:*` alert fingerprints, `inflight:*` alert investigations still running, so every replica can correlate against them, `threadlock:*` which replica is running a thread's turn, so one conversation never runs on two pods at once, `cluster:*` / `vm:*` which cluster or VM a thread is bound to | 24h conversation TTL; 12h dedup claims; 15m in-flight entries; 60s renewed thread leases |
 
 Conversation memory (Redis) and incident memory (Postgres) are deliberately separate: one is a short-lived cache, the other is the agent's long-term memory.
 

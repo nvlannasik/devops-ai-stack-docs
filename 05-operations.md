@@ -32,7 +32,9 @@ kubectl -n devops-tools port-forward deploy/devops-ai-agent 3001:3001
 | `/memory` (Alert memory) | What the agent will recall for each alert + namespace, in the exact recall text it reads |
 | `/memory/threads` (Conversation memory) | Per Slack thread: the message window, TTL, RCA flag and carried playbooks |
 | `/harness`, `/harness/<gate>` | Every gate's activity across recorded runs, and LLM latency per backend |
-| `/topology` | The agent stack's own map: LLM backends, MCP tools, Postgres, Redis and SQS |
+| `/nodes` (Hosts) | Every machine running `devops-vm-agent`, grouped by cluster plus a Standalone group: host memory, the pods' working set against allocatable, root disk, the largest service outside pods, agent freshness; filters for one group, "only what needs a look" and a name search. A cluster that does not answer is marked unreachable without blanking the others. |
+| `/nodes/c/<cluster>`, `/nodes/h/<host>` | One cluster: each control plane's memory as one budget (API server, controller-manager, other pods, etcd, runtime, OS, available, with allocatable as a dashed line), which leases each holds, every node's detail. One host: its processes, services, disk and restart history. |
+| `/topology` | The agent stack's own map, then its dependencies by purpose: how work arrives, what it remembers (Postgres tables, Redis keys), the SQS queues, the MCP tools — each family opens a dialog grouped by the question its tools answer, with the write tools and their guards apart — and the LLM backends by route |
 | `/context`, `/prompt` | The skill registry, the token budget per backend, and the system prompt in use |
 | `/bench` | Benchmark history: pass rates per scenario and axis |
 
@@ -64,7 +66,8 @@ The changes that come up most often, and where each one is made:
 | Price a backend | `LLM_BACKEND_<N>_PRICE_INPUT/_OUTPUT/_CACHE_READ` (USD per million tokens) |
 | Allow remediation in a namespace | Add it to `ALLOWED_REMEDIATION_NAMESPACES` on the MCP server |
 | Turn off remediation entirely | Set `MCP_ENABLE_WRITE_TOOLS=false` on the MCP server. The write tools are then not even registered. |
-| Run the benchmark | Silence `namespace=~bench-.*` in Alertmanager first, or every injected fault also pages the production agent |
+| Run the benchmark | Silence `namespace=~bench-.*` in Alertmanager first, or every injected fault also pages the production agent. Case C15 also needs `BENCH_HOST_SNAPSHOTS=kubectl` and `VM_AGENT_TOKENS` set (see `bench/README.md`). |
+| Install or upgrade the host agents | `homelab-k8s`: set `devops_vm_agent_commit` and both checksums in `group_vars/k8s_cluster/devops-vm-agent.yml`, then `ansible-playbook -i inventory.ini devops-vm-agent.yml -b`. Check the Hosts page: every node reporting, with its version. |
 
 ## Troubleshooting
 
@@ -94,4 +97,5 @@ Start from what you see, then check the likely cause:
 - **Workload clusters are untraced, and orphan cleanup stays on dev.** stg's traces stay in its own Jaeger, so trace tools find nothing for an stg thread. Removing unused objects (`k8s_delete_orphan`) is not enabled on stg.
 - **A GitOps fix for stg needs its Flux overlay.** When the agent cannot read which Kustomization applied the workload, it refuses the pull request rather than guess a file, and says so on the card; a restart or a pod delete is still possible.
 - **`/cluster` for an unreachable cluster** answers after 10 seconds with the reason, not the inventory.
+- **Host snapshots are the latest only.** The Hosts pages and `node_host_snapshot` show the last heartbeat (about a minute old), not a history; trends are Prometheus's.
 - **One fix at a time.** Each incident gets at most one proposal. A fault that needs several changes is explained in the RCA, and the rest is left to a human.
