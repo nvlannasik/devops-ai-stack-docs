@@ -83,6 +83,7 @@ Prompt rules alone do not hold on every model, so the important rules are enforc
 | Runbook | A mutating `kubectl`/`helm`/`flux` command in the RCA's runbook section | Removed. Only read-only commands may appear. |
 | Scope decline | An alert answered with "this is out of scope" | One more round to investigate it. If it declines again, the reply says the investigation failed instead — an alert is never called out of scope. |
 | Grounding | A resource name that no tool result ever returned | A separate warning message is posted in the thread |
+| Unsafe advice | Advice that must never be followed here: cordon or drain a control-plane node, resize the API server or etcd, restart etcd, move or delete control-plane pods | One rewrite round. What is still there leaves with a ":no_entry: Not to be done" note giving the reason. |
 
 Every gate decision is recorded and visible per run on the dashboard's `/harness` page.
 
