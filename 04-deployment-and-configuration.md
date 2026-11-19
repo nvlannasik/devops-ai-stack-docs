@@ -57,6 +57,7 @@ The settings below are environment variables. In the chart, most are set through
 | Delegation | `SUBAGENT_ENABLED`, `SUBAGENT_MAX_FANOUT` (3), `SUBAGENT_TOOL_ROUNDS` (3), `SUBAGENT_MAX_ITERATIONS` (5) | Off unless `SUBAGENT_ENABLED=true` |
 | Remediation | `GITOPS_REMEDIATION_ENABLED`, `REMEDIATION_VERIFY_DELAY_SECONDS` (300) | Turns on pull requests for Flux-managed workloads (needs the llm-worker's GitOps settings), and sets how long after a change the verification check runs |
 | Incidents | `INCIDENT_RECONCILE_ENABLED` and its `_MIN_AGE`, `_CONFIRM` and `_BATCH` settings | Closes incidents whose resolved webhook never arrived |
+| Postmortem | `POSTMORTEM_AUTO_SEVERITIES` (default `critical`; empty turns it off) | Assessed severities whose incidents get a postmortem draft when they resolve. |
 | Dashboard | `DASHBOARD_ENABLED`, `DASHBOARD_PORT` (3001), `DASHBOARD_PASSWORD`, `DASHBOARD_PUBLIC_URL` (chart: `dashboard.publicUrl`) | Unset password ⇒ every page answers `503`. The public URL is what the postmortem links in Slack point to. |
 | Tracing | `TRACE_ENABLED` (true), `LOG_LEVEL` | The harness trace in Postgres (`agent_events`) |
 | OpenTelemetry | `OTEL_EXPORTER_OTLP_ENDPOINT` (chart: `global.tracing.endpoint`), `OTEL_TRACES_SAMPLER`, `TRACING_UI_URL` (chart: `dashboard.tracingUiUrl`) | Unset endpoint ⇒ no SDK is loaded. Set on all three services by `global.tracing.enabled`. |

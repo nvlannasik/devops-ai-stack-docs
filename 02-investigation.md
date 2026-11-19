@@ -115,4 +115,4 @@ Not every request is an alert. A mention can also start one of these, each with 
 |---|---|---|
 | Follow-up | A mention in a thread that already has an RCA | Conversational answer, no RCA format |
 | Cluster tour | "explain this cluster", "jelasin namespace X" | Inventory tables built from the cluster itself (never from the model), the request flow, and where each workload is defined in Git. No remediation card. |
-| Postmortem | `@agent postmortem` | One LLM call writes the narrative. The timeline and numbers are rendered from Postgres. |
+| Postmortem | `@agent postmortem`, or automatic on resolve for an assessed severity in `POSTMORTEM_AUTO_SEVERITIES` (default `critical`) | One LLM call writes the narrative. The timeline and numbers are rendered from Postgres. |

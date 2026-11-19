@@ -232,7 +232,7 @@ The agent may suggest a fix, but it never applies one on its own. Code checks th
 ### 🧭 Onboard and document
 The same access that lets the agent investigate also lets it explain the system to a newcomer, and write up an incident afterwards.
 - **Cluster tour.** Ask *"explain this cluster"* or *"jelasin namespace X"*. The answer is a set of inventory tables built from the live cluster, not from a wiki that may be out of date. They show how requests flow from the ingress to each workload, what manages each workload (Flux, Helm or nothing), and where in Git to change it.
-- **Postmortem draft** on request. Mention the agent with `postmortem` in an incident thread. The model writes the narrative: summary, impact, root cause, what went well and poorly, and action items. The timeline and the numbers come straight from the database, so they are never invented.
+- **Postmortem draft** on request, and automatically when a critical incident resolves. Mention the agent with `postmortem` in an incident thread. The model writes the narrative: summary, impact, root cause, what went well and poorly, and action items. The timeline and the numbers come straight from the database, so they are never invented.
 
 ### 📊 See and measure
 What the agent did, what it cost and how well it worked are all visible, not taken on trust.

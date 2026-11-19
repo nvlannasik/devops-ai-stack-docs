@@ -19,7 +19,8 @@ Everything on this page works in the Slack **desktop and mobile** app alike, inc
    - a **footer**: how long it took, how many LLM and tool calls, and which model answered.
 3. Possibly one **approval card** with a proposed fix (see below).
 4. If the agent named a resource that no tool returned, a separate ⚠️ warning. Treat that RCA with care.
-5. When the alert resolves: **✅ Alert resolved**, and the incident is closed.
+5. When the alert resolves: **✅ Alert resolved**, and the incident is closed. The message carries two buttons when the RCA named a root cause. **✅ RCA was right** stores that root cause as human-confirmed, so the next investigation of this alert starts from it. **✏️ It was something else** stores nothing and asks you for the real cause in the thread (then use `learn` or ✅). Only people allowed to use the agent can click them.
+6. A **critical** incident (the agent's assessed severity) also gets a postmortem draft automatically when it resolves, unless it already has one.
 
 A neighbouring alert that shares the cause, such as an upstream service failing, appears in the **same thread** as **🔗 Related alert** instead of opening a new one.
 
