@@ -36,6 +36,7 @@ You can ask the agent anything about the cluster, in a thread or in a new messag
 | `@devops-agent explain this cluster` / `jelasin namespace sample-apps` | A **cluster tour**: inventory tables built from the cluster, how requests flow, and where each workload is defined in Git |
 | `@devops-agent learn` (or react ✅ on the message that has the real cause) | Teaches the agent the confirmed root cause and fix |
 | `@devops-agent postmortem` / `bikin postmortem` | A postmortem draft |
+| `@devops-agent digest` | Today's health digest (hosts, firing alerts, the last day's incidents, noisy alerts) — the same one posted every morning |
 | `@devops-agent resolved` / `selesai` / `fixed` | Marks the incident resolved and releases its dedup claim |
 | `@devops-agent reopen` / `still firing` / `masih` | Reopens the incident |
 

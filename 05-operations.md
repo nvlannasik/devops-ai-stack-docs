@@ -13,6 +13,17 @@ Four checks tell you whether the stack is up and running the code you expect:
 | Tools discovered | Agent boot log: `Discovered 66 MCP tools` (55 read + 11 write) |
 | Memory | Boot log: `Redis connected …` and `Incident memory: Postgres …` |
 
+## The daily health digest
+
+Once a day at `DIGEST_TIME` in `DIGEST_TIMEZONE` (dev: 08:00 Asia/Jakarta) the agent posts a digest to the alert channel. It is built from data, with no LLM:
+
+- **Hosts**: each host's lowest available memory in the last 24 hours, its biggest memory change, root disk use and days until full. A host is flagged when available memory is under 10 %, its daily lowest fell 50Mi or more over the week, its disk is 85 % full or 14 days from full, or it stopped reporting.
+- **Firing now**: what Alertmanager holds (Watchdog excluded).
+- **Last 24 h**: the investigations started, by alert, with how many are still open.
+- **Noisy this week**: alerts investigated 3 or more times in 7 days — a rule to tune, or a cause that is still there.
+
+A source that could not be read is listed under *Not read*, and its section is left out rather than shown empty. With several replicas, one claims the day in Postgres (`daily_digests`) and posts; a post that fails is logged and not retried. `@devops-agent digest` posts the same digest in a thread at any time.
+
 ## The dashboard
 
 The dashboard is read-only and served on port `3001` of the agent, behind one shared password. Expose it through the agent chart's optional `ingress` (route it to port `3001`) and set `dashboard.publicUrl`, so the postmortem links the agent posts in Slack open from a phone too. Without an Ingress, reach it with:
@@ -97,5 +108,5 @@ Start from what you see, then check the likely cause:
 - **Workload clusters are untraced, and orphan cleanup stays on dev.** stg's traces stay in its own Jaeger, so trace tools find nothing for an stg thread. Removing unused objects (`k8s_delete_orphan`) is not enabled on stg.
 - **A GitOps fix for stg needs its Flux overlay.** When the agent cannot read which Kustomization applied the workload, it refuses the pull request rather than guess a file, and says so on the card; a restart or a pod delete is still possible.
 - **`/cluster` for an unreachable cluster** answers after 10 seconds with the reason, not the inventory.
-- **Host snapshots are the latest only.** The Hosts pages and `node_host_snapshot` show the last heartbeat (about a minute old), not a history; trends are Prometheus's.
+- **Host history is 7 days at 5-minute steps.** `node_host_history` and the daily digest see a compact point every 5 minutes (memory, per-service and per-process memory, root disk), kept 7 days; the Hosts pages still show only the latest snapshot. A process outside a snapshot's largest-by-RSS list is missing from that point, not stopped. Disk forecasts need at least 6 hours of points.
 - **One fix at a time.** Each incident gets at most one proposal. A fault that needs several changes is explained in the RCA, and the rest is left to a human.

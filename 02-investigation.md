@@ -65,7 +65,7 @@ In short:
 
 A node alert (MemoryPressure, DiskPressure, NotReady, evictions) follows the `node-pressure` playbook:
 - **Which trigger fired.** The kubelet raises MemoryPressure when the host is within its eviction threshold **or** when pods come within it of the node's *allocatable* memory — the second fires with hundreds of MiB still free on the host. `k8s_node_pods` reports both: the host's memory and the pods' working set against allocatable.
-- **What runs outside pods.** When the node's usage is well above its pods' working set, the gap is the OS, kubelet, containerd — and on these control planes etcd, a systemd service. `node_host_snapshot` names those processes and their memory; the RCA must name them with their numbers.
+- **What runs outside pods.** When the node's usage is well above its pods' working set, the gap is the OS, kubelet, containerd — and on these control planes etcd, a systemd service. `node_host_snapshot` names those processes and their memory; the RCA must name them with their numbers. `node_host_history` answers what grew: the services and processes whose memory moved over the last day or week, with start, end and change computed by the agent.
 - **Control planes.** The controller-manager and scheduler leaders and the API VIP (Leases) make one master heavier than its peers, and the load moves when they do. A control-plane node is never cordoned, drained or restarted as the fix; the fix is capacity.
 
 ## 6. Gates on the answer

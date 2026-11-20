@@ -36,7 +36,7 @@ An empty result is always **explained** (for example `noLogLines: true` with a v
 
 Every tool result has its **secret values masked** before it leaves the server: env values and keys named like secrets, the value after a `--token` or `--password` argument, and token-shaped text such as JWTs and Bearer headers. Secret names and references are kept, because the agent reasons about them.
 
-The agent adds two tools of its own, served from its database rather than the MCP server: `node_host_snapshot` (read) and `vm_restart_service` (write) — see *devops-vm-agent* below.
+The agent adds three tools of its own, served from its database rather than the MCP server: `node_host_snapshot` and `node_host_history` (read) and `vm_restart_service` (write) — see *devops-vm-agent* below.
 
 ### devops-vm-agent (the host agent)
 A small Python service (standard library only) that runs as a **systemd service on each machine**: every Kubernetes node, and any VM outside a cluster. It never accepts a connection; it calls the agent:

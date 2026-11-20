@@ -57,6 +57,7 @@ The settings below are environment variables. In the chart, most are set through
 | Delegation | `SUBAGENT_ENABLED`, `SUBAGENT_MAX_FANOUT` (3), `SUBAGENT_TOOL_ROUNDS` (3), `SUBAGENT_MAX_ITERATIONS` (5) | Off unless `SUBAGENT_ENABLED=true` |
 | Remediation | `GITOPS_REMEDIATION_ENABLED`, `REMEDIATION_VERIFY_DELAY_SECONDS` (300) | Turns on pull requests for Flux-managed workloads (needs the llm-worker's GitOps settings), and sets how long after a change the verification check runs |
 | Incidents | `INCIDENT_RECONCILE_ENABLED` and its `_MIN_AGE`, `_CONFIRM` and `_BATCH` settings | Closes incidents whose resolved webhook never arrived |
+| Daily digest | `DIGEST_TIME` (`08:00`), `DIGEST_TIMEZONE` (`UTC`; dev sets `Asia/Jakarta`), `DIGEST_CHANNEL` (default the alert channel), `DIGEST_ENABLED` (`false` turns it off) | Needs Postgres: the day is claimed in `daily_digests` so one replica posts. |
 | Postmortem | `POSTMORTEM_AUTO_SEVERITIES` (default `critical`; empty turns it off) | Assessed severities whose incidents get a postmortem draft when they resolve. |
 | Dashboard | `DASHBOARD_ENABLED`, `DASHBOARD_PORT` (3001), `DASHBOARD_PASSWORD`, `DASHBOARD_PUBLIC_URL` (chart: `dashboard.publicUrl`) | Unset password ⇒ every page answers `503`. The public URL is what the postmortem links in Slack point to. |
 | Tracing | `TRACE_ENABLED` (true), `LOG_LEVEL` | The harness trace in Postgres (`agent_events`) |
@@ -136,7 +137,7 @@ Adjust the URL to the agent Service name in your cluster.
 ## Database
 
 - Postgres needs a database named in the release values (`auth.database`, e.g. `devops_agent`). The Bitnami chart creates it only on the **first** initialisation of an empty volume. An already-initialised volume needs a one-time manual `CREATE DATABASE`.
-- Tables are created by the agent's own migrations at startup (`001`–`016` today). A failing migration is a pod that does not start, so migrations avoid statements that need extra privileges (no `CREATE EXTENSION`).
+- Tables are created by the agent's own migrations at startup (`001`–`022` today). A failing migration is a pod that does not start, so migrations avoid statements that need extra privileges (no `CREATE EXTENSION`).
 
 ## Changing behaviour without changing code
 
