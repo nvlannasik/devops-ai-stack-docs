@@ -139,7 +139,7 @@ Adjust the URL to the agent Service name in your cluster.
 ## Database
 
 - Postgres needs a database named in the release values (`auth.database`, e.g. `devops_agent`). The Bitnami chart creates it only on the **first** initialisation of an empty volume. An already-initialised volume needs a one-time manual `CREATE DATABASE`.
-- Tables are created by the agent's own migrations at startup (`001`–`025` today). A failing migration is a pod that does not start, so migrations avoid statements that need extra privileges (no `CREATE EXTENSION`).
+- Tables are created by the agent's own migrations at startup (`001`–`026` today). A failing migration is a pod that does not start, so migrations avoid statements that need extra privileges (no `CREATE EXTENSION`).
 
 ## Changing behaviour without changing code
 

@@ -22,9 +22,9 @@ Once a day at `DIGEST_TIME` in `DIGEST_TIMEZONE` (dev: 08:00 Asia/Jakarta) the a
 - **Firing now**: what Alertmanager holds (Watchdog excluded).
 - **GitOps (Flux)**: HelmReleases and Kustomizations that are not Ready (suspended ones counted apart), with since when and why — a Git change to them is not applied until they are Ready.
 - **Last 24 h**: the investigations started, by alert, with how many are still open.
-- **Noisy this week**: alerts investigated 3 or more times in 7 days — a rule to tune, or a cause that is still there.
+- **Noisy this week**: alerts investigated 3 or more times in 7 days, each with what its week says: mostly clearing within 30 minutes on its own and never fixed → lengthen the rule's `for:` (or raise its threshold); open for hours → a cause still there, not the rule; fixed and back → the fix does not hold.
 
-A source that could not be read is listed under *Not read*, and its section is left out rather than shown empty. With several replicas, one claims the day in Postgres (`daily_digests`) and posts; a post that fails is logged and not retried. `@devops-agent digest` posts the same digest in a thread at any time.
+A source that could not be read is listed under *Not read*, and its section is left out rather than shown empty. With several replicas, one claims the day in Postgres (`daily_digests`) and posts; a post that fails is logged and not retried. `@devops-agent digest` posts the same digest in a thread at any time. Every posted digest is kept: the dashboard's **Daily digests** page (`/digests`) shows the last 30 days.
 
 ## When a host goes quiet
 
@@ -50,7 +50,8 @@ kubectl -n devops-tools port-forward deploy/devops-ai-agent 3001:3001
 | `/memory/threads` (Conversation memory) | Per Slack thread: the message window, TTL, RCA flag and carried playbooks |
 | `/harness`, `/harness/<gate>` | Every gate's activity across recorded runs, and LLM latency per backend |
 | `/nodes` (Hosts) | Every machine running `devops-vm-agent`, grouped by cluster plus a Standalone group: host memory, the pods' working set against allocatable, root disk, the largest service outside pods, agent freshness; filters for one group, "only what needs a look" and a name search. A cluster that does not answer is marked unreachable without blanking the others. |
-| `/nodes/c/<cluster>`, `/nodes/h/<host>` | One cluster: each control plane's memory as one budget (API server, controller-manager, other pods, etcd, runtime, OS, available, with allocatable as a dashed line), which leases each holds, every node's detail. One host: its processes, services, disk and restart history. |
+| `/nodes/c/<cluster>`, `/nodes/h/<host>` | One cluster: each control plane's memory as one budget (API server, controller-manager, other pods, etcd, runtime, OS, available, with allocatable as a dashed line), which leases each holds, every node's detail. One host: its processes, services, disk and restart history, and a **7-day history** — the lowest available memory per 6 hours (a silence draws as 0), what moved in the last 24 hours, the root disk forecast and the gaps. Every node card links to it. |
+| `/digests` (Daily digests) | The daily health digests as they were posted, newest first, for the last 30 days. |
 | `/topology` | The agent stack's own map, then its dependencies by purpose: how work arrives, what it remembers (Postgres tables, Redis keys), the SQS queues, the MCP tools — each family opens a dialog grouped by the question its tools answer, with the write tools and their guards apart — and the LLM backends by route |
 | `/context`, `/prompt` | The skill registry, the token budget per backend, and the system prompt in use |
 | `/bench` | Benchmark history: pass rates per scenario and axis |
