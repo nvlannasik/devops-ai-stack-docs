@@ -22,7 +22,14 @@ Everything on this page works in the Slack **desktop and mobile** app alike, inc
 5. When the alert resolves: **✅ Alert resolved**, and the incident is closed. The message carries two buttons when the RCA named a root cause. **✅ RCA was right** stores that root cause as human-confirmed, so the next investigation of this alert starts from it. **✏️ It was something else** stores nothing and asks you for the real cause in the thread (then use `learn` or ✅). Only people allowed to use the agent can click them.
 6. A **critical** incident (the agent's assessed severity) also gets a postmortem draft automatically when it resolves, unless it already has one.
 
-A neighbouring alert that shares the cause, such as an upstream service failing, appears in the **same thread** as **🔗 Related alert** instead of opening a new one.
+A neighbouring alert that shares the cause, such as an upstream service failing, appears in the **same thread** as **🔗 Related alert** instead of opening a new one. So do alerts about the same thing under another name: the rest of a cert-manager storm, another alert on the same node, or a pod evicted from a node whose incident is open.
+
+Other lines you may see in a thread:
+- **⏳ Still firing** — the alert is still firing hours later and its incident is still open; it was not investigated again. Mention the agent to have it look again.
+- **♻️ Recurrence** — the same alert on the same subject resolved within the last day; this investigation starts from that root cause and is shorter.
+
+In the alert channel itself:
+- **🔌 Hosts stopped reporting** — a node or VM's host agent has been silent for 5 minutes. When control planes are among them it says whether etcd still has quorum, and hosts that went quiet together point at what they share (a hypervisor, a switch, power). **✅ … is reporting again** follows in the same thread.
 
 ## Talking to the agent
 

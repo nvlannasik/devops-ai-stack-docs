@@ -17,12 +17,18 @@ Four checks tell you whether the stack is up and running the code you expect:
 
 Once a day at `DIGEST_TIME` in `DIGEST_TIMEZONE` (dev: 08:00 Asia/Jakarta) the agent posts a digest to the alert channel. It is built from data, with no LLM:
 
-- **Hosts**: each host's lowest available memory in the last 24 hours, its biggest memory change, root disk use and days until full. A host is flagged when available memory is under 10 %, its daily lowest fell 50Mi or more over the week, its disk is 85 % full or 14 days from full, or it stopped reporting.
+- **Hosts**: each host's lowest available memory in the last 24 hours, its biggest memory change, root disk use and days until full. A host is flagged when available memory is under 10 %, its daily lowest fell 50Mi or more over the week and is either under 20 % of memory or 14 days from none at that rate, its disk is 85 % full or 14 days from full, or it stopped reporting.
+- **Control plane**: per master, the leader roles it holds (controller-manager, scheduler, the API VIP), its API server's watches and memory, and its lowest available memory — flagged when roles concentrate on one master, watches do not spread, and that master is also the one with the least memory.
 - **Firing now**: what Alertmanager holds (Watchdog excluded).
+- **GitOps (Flux)**: HelmReleases and Kustomizations that are not Ready (suspended ones counted apart), with since when and why — a Git change to them is not applied until they are Ready.
 - **Last 24 h**: the investigations started, by alert, with how many are still open.
 - **Noisy this week**: alerts investigated 3 or more times in 7 days — a rule to tune, or a cause that is still there.
 
 A source that could not be read is listed under *Not read*, and its section is left out rather than shown empty. With several replicas, one claims the day in Postgres (`daily_digests`) and posts; a post that fails is logged and not retried. `@devops-agent digest` posts the same digest in a thread at any time.
+
+## When a host goes quiet
+
+Every minute the agent checks the host agents' heartbeats. A host silent for 5 minutes (`HOST_SILENT_MINUTES`) is announced in the alert channel — several at once in one message — and its return is posted in that message's thread. From the hosts' own last snapshots the message says whether etcd still has quorum: with two of three control planes silent, the Kubernetes API is down, every controller that needs it restarts in a loop and every `kube_*` alert is blind, so this message may be the only signal. Hosts that went quiet within two minutes of each other point at what they share; every host at once points at the path to the agent's `/vm/` endpoint instead. Prometheus raises **KubernetesNodeUnreachable** (the kubelet scrape) and **KubernetesApiServerDown** (every API server scrape failing) from its side, without going through the API.
 
 ## The dashboard
 
@@ -108,5 +114,7 @@ Start from what you see, then check the likely cause:
 - **Workload clusters are untraced, and orphan cleanup stays on dev.** stg's traces stay in its own Jaeger, so trace tools find nothing for an stg thread. Removing unused objects (`k8s_delete_orphan`) is not enabled on stg.
 - **A GitOps fix for stg needs its Flux overlay.** When the agent cannot read which Kustomization applied the workload, it refuses the pull request rather than guess a file, and says so on the card; a restart or a pod delete is still possible.
 - **`/cluster` for an unreachable cluster** answers after 10 seconds with the reason, not the inventory.
+- **Host logs need devops-vm-agent version 5.** `node_journal` reads only units in the host's `journal_units`; a host still on version 3 or 4 refuses the read, and the answer says so.
+- **No one watches the watcher.** The host watch, the digest and the Alertmanager webhook all run in the agent. If the agent's own node or its Postgres is down, nothing announces it; an outside dead-man's switch on Alertmanager's Watchdog would.
 - **Host history is 7 days at 5-minute steps.** `node_host_history` and the daily digest see a compact point every 5 minutes (memory, per-service and per-process memory, root disk), kept 7 days; the Hosts pages still show only the latest snapshot. A process outside a snapshot's largest-by-RSS list is missing from that point, not stopped. Disk forecasts need at least 6 hours of points.
 - **One fix at a time.** Each incident gets at most one proposal. A fault that needs several changes is explained in the RCA, and the rest is left to a human.

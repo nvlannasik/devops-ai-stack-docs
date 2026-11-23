@@ -36,13 +36,15 @@ An empty result is always **explained** (for example `noLogLines: true` with a v
 
 Every tool result has its **secret values masked** before it leaves the server: env values and keys named like secrets, the value after a `--token` or `--password` argument, and token-shaped text such as JWTs and Bearer headers. Secret names and references are kept, because the agent reasons about them.
 
-The agent adds three tools of its own, served from its database rather than the MCP server: `node_host_snapshot` and `node_host_history` (read) and `vm_restart_service` (write) — see *devops-vm-agent* below.
+The agent adds five tools of its own, served from its database and the host agents rather than the MCP server: `node_host_snapshot`, `node_host_history`, `node_journal` and `control_plane_balance` (read) and `vm_restart_service` (write) — see *devops-vm-agent* below.
 
 ### devops-vm-agent (the host agent)
 A small Python service (standard library only) that runs as a **systemd service on each machine**: every Kubernetes node, and any VM outside a cluster. It never accepts a connection; it calls the agent:
 - **Every minute, a heartbeat** with a read-only **host snapshot**: memory (available, anonymous, cache, swap), the largest processes by RSS with the systemd unit or `kubepods` cgroup each runs in, memory per systemd service, all pods' memory together, root disk and load. Process names only, never command lines. This is how the agent sees what runs **outside** pods — on these control planes etcd is a systemd service, not a pod.
 - **Every 10 seconds, a claim** for an approved restart, which it runs only for a unit in its own local allowlist (empty on Kubernetes nodes: the agent does not restart node services).
 - Since version 4 it says **which cluster it is a node of and its node name**, so hosts from several clusters, and standalone VMs, are kept apart.
+- Since version 5 it also answers a **journal read**: the newest lines of one unit in its own `journal_units` (default kubelet, containerd, etcd and its restart allowlist), pulled like a restart, with secret-looking values redacted on the host before they are sent. Older versions refuse the read.
+- The agent stores a compact point of every host's snapshot every 5 minutes for 7 days, and **announces a host that stops heartbeating** for 5 minutes in the alert channel — with what that means for etcd's quorum, read from the hosts' own snapshots — and posts its return in the same thread.
 
 The cluster's own nodes reach the agent over the LAN (`http://10.10.10.200/vm/`, ingress-nginx's address); a VM elsewhere uses the public host. The nodes get it from the `homelab-k8s` Ansible playbook `devops-vm-agent.yml`, pinned to a commit with checksums.
 
